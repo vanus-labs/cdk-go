@@ -59,6 +59,7 @@ func (s *Sink) receive(event cloudevents.Event) {
 	s.logger.Info("event-print", "event", event.String())
 }
 
+//CreateSink implements a function to construct a Sink
 func CreateSink(ctx context.Context, ceClient cloudevents.Client) connector.Sink {
 	logger := log.FromContext(ctx)
 	return &Sink{

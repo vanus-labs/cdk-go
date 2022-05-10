@@ -19,7 +19,15 @@ package main
 import "linkall.com/cdk-go/v1/connector"
 
 func main() {
-	go connector.RunSource("MySource", CreateSource)
+	//The following codes run a HttpSource which retrieve http requests and
+	//transform requests into standard CloudEvents. It finally delivers those
+	//CloudEvents to the EventDisplaySink.
+	//To test this example, you can send Http requests to http://localhost:8080
+
+	//The EventDisplaySink simply receives CloudEvents and prints them.
+
+	go connector.RunSource("HttpSource", CreateSource)
+
 	connector.RunSink("EventDisplay", CreateSink)
 
 }

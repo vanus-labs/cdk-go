@@ -31,18 +31,24 @@ const (
 )
 
 // Source is the interface a source connector expected to implement
-//
 type Source interface {
 	Sink
+	//Adapt transforms data into CloudEvents
 	Adapt(args ...interface{}) cloudevents.Event
 }
+
+// SourceConstructor is the function to construct a Source
 type SourceConstructor func(ctx context.Context, client cloudevents.Client) Source
 
+// Sink is the interface a sink connector expected to implement
 type Sink interface {
 	Start() error
 }
+
+// SinkConstructor is the function to construct a Sink
 type SinkConstructor func(ctx context.Context, client cloudevents.Client) Sink
 
+//RunSource method is used to run a source connector
 func RunSource(connectorName string, sC SourceConstructor) {
 	ctx, ceClient := prepareRun(connectorName)
 	ctx = cloudevents.ContextWithTarget(ctx, config.Accessor.VanceSink())
@@ -50,6 +56,8 @@ func RunSource(connectorName string, sC SourceConstructor) {
 	source := sC(ctx, ceClient)
 	source.Start()
 }
+
+//RunSink method is used to run a sink connector
 func RunSink(connectorName string, sC SinkConstructor) {
 	//fmt.Println("run sink")
 	ctx, ceClient := prepareRun(connectorName)
