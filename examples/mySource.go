@@ -50,8 +50,10 @@ func (s *Source) myHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Source) Start() error {
 	//env := config.Accessor.Get("vance_sink")
 	http.HandleFunc("/", s.myHandler)
-	http.ListenAndServe(":8080", nil)
-
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		s.logger.Error(err, "server listens on 8080 failed.")
+	}
 	return nil
 }
 
@@ -76,6 +78,7 @@ func (s *Source) Adapt(args ...interface{}) cloudevents.Event {
 	return event
 }
 
+//CreateSource implements a function to construct a Source
 func CreateSource(ctx context.Context, ceClient cloudevents.Client) connector.Source {
 	logger := log.FromContext(ctx)
 	return &Source{

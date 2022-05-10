@@ -78,6 +78,10 @@ func init() {
 	}
 }
 
+// Get method retrieves by following steps:
+// 1. Try to get an environment value by the key
+// 2. Try to get the value from a user-specific json config file.
+// Use config.Accessor.Get(key) to get any config value the user pass to the program
 func (a *ConfigAccessor) Get(key string) string {
 	var ret string
 	ret, existed := os.LookupEnv(key)
