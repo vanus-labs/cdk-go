@@ -18,8 +18,8 @@ package config
 
 import (
 	"github.com/go-logr/logr"
+	"github.com/linkall-labs/cdk-go/log"
 	"github.com/tidwall/gjson"
-	"linkall.com/cdk-go/v1/log"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"strings"

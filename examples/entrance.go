@@ -16,7 +16,7 @@ limitations under the License.
 
 package main
 
-import "linkall.com/cdk-go/v1/connector"
+import "github.com/linkall-labs/cdk-go/connector"
 
 func main() {
 	//The following codes run a HttpSource which retrieve http requests and
