@@ -1,4 +1,4 @@
-module linkall.com/cdk-go/v1
+module github.com/linkall-labs/cdk-go
 
 go 1.14
 

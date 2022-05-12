@@ -20,9 +20,9 @@ import (
 	"context"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/go-logr/logr"
-	"linkall.com/cdk-go/v1/config"
-	"linkall.com/cdk-go/v1/connector"
-	"linkall.com/cdk-go/v1/log"
+	"github.com/linkall-labs/cdk-go/config"
+	"github.com/linkall-labs/cdk-go/connector"
+	"github.com/linkall-labs/cdk-go/log"
 )
 
 type Sink struct {

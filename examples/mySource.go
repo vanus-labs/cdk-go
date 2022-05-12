@@ -21,9 +21,9 @@ import (
 	"encoding/json"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/go-logr/logr"
+	"github.com/linkall-labs/cdk-go/connector"
+	"github.com/linkall-labs/cdk-go/log"
 	"io/ioutil"
-	"linkall.com/cdk-go/v1/connector"
-	"linkall.com/cdk-go/v1/log"
 	"net/http"
 	"time"
 )
