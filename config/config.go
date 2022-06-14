@@ -28,9 +28,9 @@ import (
 const (
 	VanceConfigPath   string = "vance_config_path"
 	VanceConfigPathDv string = "/vance/config/config.json"
-	VanceSink         string = "vance_sink"
-	VanceSinkDv       string = "vance_sink"
-	VancePort         string = "vance_port"
+	VanceSink         string = "v_target"
+	VanceSinkDv       string = "v_target"
+	VancePort         string = "v_port"
 	VancePortDv       string = "8081"
 )
 
