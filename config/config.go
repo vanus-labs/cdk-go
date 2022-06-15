@@ -26,12 +26,11 @@ import (
 )
 
 const (
-	VanceConfigPath   string = "vance_config_path"
 	VanceConfigPathDv string = "/vance/config/config.json"
 	VanceSink         string = "v_target"
-	VanceSinkDv       string = "v_target"
+	VanceSinkDv       string = "http://localhost:8080"
 	VancePort         string = "v_port"
-	VancePortDv       string = "8081"
+	VancePortDv       string = "8080"
 )
 
 // ConfigAccessor provides an easy way to obtain configs
@@ -47,16 +46,12 @@ func init() {
 	log.SetLogger(zap.New())
 	Accessor = ConfigAccessor{
 		DefaultValues: map[string]string{
-			VanceConfigPath: VanceConfigPathDv,
-			VanceSink:       VanceSinkDv,
-			VancePort:       VancePortDv,
+			VanceSink: VanceSinkDv,
+			VancePort: VancePortDv,
 		},
 		Logger: log.Log.WithName("ConfigAccessor"),
 	}
-	configPath, existed := os.LookupEnv(strings.ToUpper(VanceConfigPath))
-	if !existed {
-		configPath = VanceConfigPathDv
-	}
+	configPath := VanceConfigPathDv
 	userConfig = make(map[string]string)
 	content, err := os.ReadFile(configPath)
 
@@ -84,7 +79,7 @@ func init() {
 // Use config.Accessor.Get(key) to get any config value the user pass to the program
 func (a *ConfigAccessor) Get(key string) string {
 	var ret string
-	ret, existed := os.LookupEnv(key)
+	ret, existed := os.LookupEnv(strings.ToUpper(key))
 	if !existed {
 		a.Logger.Info("userConfig length", "len", len(userConfig))
 		ret = userConfig[key]
