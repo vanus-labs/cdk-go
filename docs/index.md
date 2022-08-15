@@ -22,4 +22,4 @@ The cdk aims to speed up the development of a vance connector by offering some u
 md file example code -> [Examples][example]
 
 [vc]: https://github.com/linkall-labs/vance-docs/blob/main/docs/concept.md
-[example]: https://github.com/linkall-labs/vance-docs/blob/main/docs/example.md
+[example]: example.md
