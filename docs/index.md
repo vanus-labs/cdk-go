@@ -47,11 +47,5 @@ Here are some connector examples developed by cdk-java.
 | [source-example] | source   | Use this example to write your first source connector. |
 
 Use them as samples when you want to write a sink or source connector.
-
 [vc]: https://github.com/linkall-labs/vance-docs/blob/main/docs/concept.md
-[api]: https://linkall-labs.github.io/cdk-java/api.html
-[http]: https://linkall-labs.github.io/cdk-java/http.html
-[sink-example]: https://github.com/linkall-labs/cdk-java/tree/main/examples/sink-example
-[source-example]: https://github.com/linkall-labs/cdk-java/tree/main/examples/source-example
-[ce]: https://github.com/cloudevents/spec
-[ce-sdk]: https://github.com/cloudevents/sdk-java
+[http]: https://linkall-labs.github.io/cdk-go/http.html
