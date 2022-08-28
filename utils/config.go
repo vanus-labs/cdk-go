@@ -18,19 +18,17 @@ package cdkutil
 
 import (
 	"encoding/json"
-	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
 )
 
 func ParseConfig(file string, v interface{}) error {
-	if file == "" {
-		return nil
-	}
-
 	data, err := os.ReadFile(file)
 
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 
