@@ -28,7 +28,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	"github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/linkall-labs/cdk-go/log"
-	"github.com/linkall-labs/cdk-go/utils"
+	cdkutil "github.com/linkall-labs/cdk-go/utils"
 )
 
 const (
@@ -53,11 +53,10 @@ type Source interface {
 type Sink interface {
 	Connector
 	Destroy() error
-	Handle(ctx context.Context, event *v2.Event) protocol.Result
+	Handle(ctx context.Context, event v2.Event) protocol.Result
 }
 
-func RunSource(source Source) error {
-	return nil
+func RunSource(source Source) {
 }
 
 func RunSink(sink Sink) {
@@ -67,7 +66,7 @@ func RunSink(sink Sink) {
 	if err := sink.Init(os.Getenv(configFileEnv), os.Getenv(secretFileEnv)); err != nil {
 		panic("init config file failed: " + err.Error())
 	}
-	ctx := cdkutil.SetupSignalContext()
+	var ctx = cdkutil.SetupSignalContext()
 	ctx = context.WithValue(ctx, log.ConnectorName, sink.Name())
 	sa := &sinkApplication{sink: sink}
 	run := func() {
@@ -76,23 +75,29 @@ func RunSink(sink Sink) {
 			panic("start sink server failed: " + err.Error())
 		}
 	}
-	wait(ctx, run)
+	wait(ctx, sink, run)
 	if err := sink.Destroy(); err != nil {
 		log.Warning(ctx, "there was error when destroy sink", map[string]interface{}{
 			log.KeyError: err,
 		})
 	} else {
-		log.Info(ctx, "the sink server has been shutdown gracefully", nil)
+		log.Info(ctx, "the sink server has been shutdown gracefully", map[string]interface{}{
+			log.ConnectorName: sink.Name(),
+		})
 	}
 }
 
-func wait(ctx context.Context, f func()) {
+func wait(ctx context.Context, c Connector, f func()) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		f()
 		wg.Done()
 	}()
+	log.Info(ctx, "the sink connector started", map[string]interface{}{
+		log.ConnectorName: c.Name(),
+		"listening":       fmt.Sprintf("0.0.0.0:%d", c.Port()),
+	})
 	select {
 	case <-ctx.Done():
 		log.Info(ctx, "received system signal, preparing exit", nil)

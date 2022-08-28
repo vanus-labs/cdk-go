@@ -20,5 +20,5 @@ import "github.com/linkall-labs/cdk-go/runtime"
 
 var (
 	RunSource = runtime.RunSource
-	RunSink   = runtime.RunSource
+	RunSink   = runtime.RunSink
 )

@@ -1,10 +1,9 @@
 module github.com/linkall-labs/cdk-go
 
-go 1.14
+go 1.18
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.8.0
 	github.com/go-logr/logr v1.2.2
 	github.com/tidwall/gjson v1.14.0
-	sigs.k8s.io/controller-runtime v0.11.0
 )

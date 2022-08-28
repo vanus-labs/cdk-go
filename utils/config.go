@@ -24,6 +24,10 @@ import (
 )
 
 func ParseConfig(file string, v interface{}) error {
+	if file == "" {
+		return nil
+	}
+
 	data, err := os.ReadFile(file)
 
 	if err != nil {
