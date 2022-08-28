@@ -19,7 +19,6 @@ package connector
 import (
 	"context"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/go-logr/logr"
 	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/log"
 	"strconv"
@@ -80,15 +79,17 @@ func RunSink(connectorName string, sC SinkConstructor) {
 			"<func(context.Context, client.Client) connector.Sink>")
 	}
 }*/
+
 func prepareRun(name string) (context.Context, cloudevents.Client) {
 	ctx := context.Background()
-	logger := log.Log.WithName(name)
-	ctx = logr.NewContext(ctx, logger)
+	ctx = context.WithValue(ctx, log.ConnectorName, name)
+	//logger := log.Log.WithName(name)
+	//ctx = logr.NewContext(ctx, logger)
 	port, _ := strconv.Atoi(config.Accessor.VancePort())
 	op := cloudevents.WithPort(port)
 	ceClient, err := cloudevents.NewClientHTTP(op)
 	if err != nil {
-		logger.Error(err, "create CEClient failed")
+		//logger.Error(err, "create CEClient failed")
 	}
 	return ctx, ceClient
 }

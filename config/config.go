@@ -18,10 +18,8 @@ package config
 
 import (
 	"github.com/go-logr/logr"
-	"github.com/linkall-labs/cdk-go/log"
 	"github.com/tidwall/gjson"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"strings"
 )
 
@@ -43,13 +41,13 @@ var Accessor ConfigAccessor
 var userConfig map[string]string
 
 func init() {
-	log.SetLogger(zap.New())
+	//log.SetLogger(zap.New())
 	Accessor = ConfigAccessor{
 		DefaultValues: map[string]string{
 			VanceSink: VanceSinkDv,
 			VancePort: VancePortDv,
 		},
-		Logger: log.Log.WithName("ConfigAccessor"),
+		//Logger: log.Log.WithName("ConfigAccessor"),
 	}
 	configPath := VanceConfigPathDv
 	userConfig = make(map[string]string)

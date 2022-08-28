@@ -22,7 +22,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/connector"
-	"github.com/linkall-labs/cdk-go/log"
 )
 
 type Sink struct {
@@ -61,10 +60,10 @@ func (s *Sink) receive(event cloudevents.Event) {
 
 //CreateSink implements a function to construct a Sink
 func CreateSink(ctx context.Context, ceClient cloudevents.Client) connector.Sink {
-	logger := log.FromContext(ctx)
+	//logger := log.FromContext(ctx)
 	return &Sink{
 		client: ceClient,
-		logger: logger,
-		ctx:    ctx,
+		//logger: ,
+		ctx: ctx,
 	}
 }

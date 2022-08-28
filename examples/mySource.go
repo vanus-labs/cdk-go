@@ -22,7 +22,6 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/go-logr/logr"
 	"github.com/linkall-labs/cdk-go/connector"
-	"github.com/linkall-labs/cdk-go/log"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -80,10 +79,10 @@ func (s *Source) Adapt(args ...interface{}) cloudevents.Event {
 
 //CreateSource implements a function to construct a Source
 func CreateSource(ctx context.Context, ceClient cloudevents.Client) connector.Source {
-	logger := log.FromContext(ctx)
+	//logger := log.FromContext(ctx)
 	return &Source{
 		client: ceClient,
-		logger: logger,
-		ctx:    ctx,
+		//logger: logger,
+		ctx: ctx,
 	}
 }
