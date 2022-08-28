@@ -18,19 +18,13 @@ package cdkutil
 
 import (
 	"encoding/json"
+	"gopkg.in/yaml.v2"
 	"os"
 	"strings"
 )
 
 func ParseConfig(file string, v interface{}) error {
 	data, err := os.ReadFile(file)
-
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
 
 	if strings.HasSuffix(file, "json") {
 		err = json.Unmarshal(data, v)
