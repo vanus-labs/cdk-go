@@ -17,16 +17,21 @@ limitations under the License.
 package runtime
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"sync"
 
 	v2 "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/client"
 	"github.com/cloudevents/sdk-go/v2/protocol"
-	"github.com/cloudevents/sdk-go/v2/protocol/http"
+	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/linkall-labs/cdk-go/log"
 	cdkutil "github.com/linkall-labs/cdk-go/utils"
 )
@@ -53,7 +58,9 @@ type Source interface {
 type Sink interface {
 	Connector
 	Destroy() error
-	Handle(ctx context.Context, event v2.Event) protocol.Result
+	Handle(ctx context.Context, msg proto.Message) error
+	NewEvent() proto.Message
+	Validate(msg proto.Message) error
 }
 
 func RunSource(source Source) {
@@ -114,9 +121,47 @@ func (sa *sinkApplication) startReceive(ctx context.Context) error {
 		return err
 	}
 
-	c, err := client.NewHTTP(http.WithListener(ls), http.WithRequestDataAtContextMiddleware())
+	c, err := client.NewHTTP(cehttp.WithListener(ls), cehttp.WithRequestDataAtContextMiddleware())
 	if err != nil {
 		return err
 	}
-	return c.StartReceiver(ctx, sa.sink.Handle)
+	return c.StartReceiver(ctx, sa.Handle)
+}
+
+func (sa *sinkApplication) Handle(ctx context.Context, event v2.Event) protocol.Result {
+	e := sa.sink.NewEvent()
+	if err := jsonpb.Unmarshal(bytes.NewReader(event.Data()), e); err != nil {
+		return cehttp.NewResult(http.StatusBadRequest,
+			fmt.Sprintf("parsing data error: %s", err.Error()))
+	}
+
+	m := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"id":        event.ID(),
+			"source":    event.Source(),
+			"type":      event.Type(),
+			"time":      event.Time(),
+			"extension": event.Extensions(),
+		}}
+	data, err := json.Marshal(m)
+	if err != nil {
+		return cehttp.NewResult(http.StatusBadRequest,
+			fmt.Sprintf("parsing metadata error: %s", err.Error()))
+	}
+
+	if err = jsonpb.UnmarshalNext(json.NewDecoder(bytes.NewReader(data)), e); err != nil {
+		return cehttp.NewResult(http.StatusBadRequest,
+			fmt.Sprintf("unmarshall metadata error: %s", err.Error()))
+	}
+
+	if err := sa.sink.Validate(e); err != nil {
+		return cehttp.NewResult(http.StatusBadRequest,
+			fmt.Sprintf("validate event error: %s", err.Error()))
+	}
+
+	if err := sa.sink.Handle(ctx, e); err != nil {
+		return cehttp.NewResult(http.StatusInternalServerError,
+			fmt.Sprintf("handle event error: %s", err.Error()))
+	}
+	return cehttp.NewResult(http.StatusOK, "")
 }
