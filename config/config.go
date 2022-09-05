@@ -17,8 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"github.com/go-logr/logr"
-	"github.com/tidwall/gjson"
 	"os"
 	"strings"
 )
@@ -34,7 +32,7 @@ const (
 // ConfigAccessor provides an easy way to obtain configs
 type ConfigAccessor struct {
 	DefaultValues map[string]string
-	Logger        logr.Logger
+	//Logger        logr.Logger
 }
 
 var Accessor ConfigAccessor
@@ -54,20 +52,19 @@ func init() {
 	content, err := os.ReadFile(configPath)
 
 	if err != nil {
-		Accessor.Logger.Info("read vance config failed")
+		//Accessor.Logger.Info("read vance config failed")
 		content, err = os.ReadFile("./config.json")
 		if err != nil {
-			Accessor.Logger.Info("read local config failed")
+			//Accessor.Logger.Info("read local config failed")
 		}
 	}
 	if len(content) != 0 {
-		conf := gjson.ParseBytes(content).Map()
-		Accessor.Logger.Info("conf length", "len", len(conf))
-
-		for k, v := range conf {
-			userConfig[k] = v.Str
-		}
-
+		//conf := gjson.ParseBytes(content).Map()
+		//Accessor.Logger.Info("conf length", "len", len(conf))
+		//
+		//for k, v := range conf {
+		//	userConfig[k] = v.Str
+		//}
 	}
 }
 
@@ -79,7 +76,7 @@ func (a *ConfigAccessor) Get(key string) string {
 	var ret string
 	ret, existed := os.LookupEnv(strings.ToUpper(key))
 	if !existed {
-		a.Logger.Info("userConfig length", "len", len(userConfig))
+		//a.Logger.Info("userConfig length", "len", len(userConfig))
 		ret = userConfig[key]
 	}
 	return ret
