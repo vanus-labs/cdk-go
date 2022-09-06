@@ -31,13 +31,12 @@ type Connector interface {
 	Destroy() error
 }
 
-//type Source interface {
-//	Connector
-//	Start() error
-//	Stop() error
-//	Receive(ctx context.Context) error
-//}
-//
+//	type Source interface {
+//		Connector
+//		Start() error
+//		Stop() error
+//		Receive(ctx context.Context) error
+//	}
 //func RunSource(source Source) {
 //}
 

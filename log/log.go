@@ -65,6 +65,9 @@ var vLog Logger
 func NewLogger() Logger {
 	return &defaultLogger{}
 }
+func GetDefaultLogger() Logger {
+	return vLog
+}
 
 type defaultLogger struct {
 	logger *logrus.Logger

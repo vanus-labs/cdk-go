@@ -19,19 +19,24 @@ package main
 import (
 	"context"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/go-logr/logr"
-	"github.com/linkall-labs/cdk-go/config"
+	v2 "github.com/cloudevents/sdk-go/v2"
+	"github.com/cloudevents/sdk-go/v2/protocol"
 	"github.com/linkall-labs/cdk-go/connector"
+	"github.com/linkall-labs/cdk-go/log"
+	cdkutil "github.com/linkall-labs/cdk-go/utils"
 )
 
 type Sink struct {
 	client cloudevents.Client
-	logger logr.Logger
+	logger log.Logger
 	ctx    context.Context
 }
 
-func (s *Sink) Start() error {
-	s.logger.Info("Start method")
+func (s *Sink) Init(cfgPath, secretPath string) error {
+	cfg := &connector.Config{}
+	if err := cdkutil.ParseConfig(cfgPath, cfg); err != nil {
+		return err
+	}
 	/*p, err := cloudevents.NewHTTP()
 	if err != nil {
 		s.logger.Error(err, "new http protocol failed")
@@ -47,18 +52,42 @@ func (s *Sink) Start() error {
 		s.logger.Error(err, "new server failed")
 	}*/
 	//ctx = cloudevents.con
-	s.logger.Info("start listening on port", "port", config.Accessor.VancePort())
-	err := s.client.StartReceiver(s.ctx, s.receive)
+	s.logger.Info(context.Background(), "start listening on port", map[string]interface{}{
+		"port": cfg.Target,
+	})
+	err := s.client.StartReceiver(s.ctx, s.Receive)
 	if err == nil {
-		s.logger.Error(err, "StartReceiver err")
+		s.logger.Error(context.Background(), "StartReceiver err", map[string]interface{}{
+			"error": err,
+		})
 	}
 	return nil
 }
-func (s *Sink) receive(event cloudevents.Event) {
-	s.logger.Info("event-print", "event", event.String())
+
+func (s *Sink) Name() string {
+	return "mySink"
 }
 
-//CreateSink implements a function to construct a Sink
+func (s *Sink) SetLogger(logger log.Logger) {
+	s.logger = logger
+}
+
+func (s *Sink) Destroy() error {
+	return nil
+}
+
+func (s *Sink) Receive(ctx context.Context, event v2.Event) protocol.Result {
+	s.logger.Info(ctx, "event-print", map[string]interface{}{
+		"event": event.String(),
+	})
+	return nil
+}
+
+//func (s *Sink) receive(event cloudevents.Event) {
+//	s.logger.Info("event-print", "event", event.String())
+//}
+
+// CreateSink implements a function to construct a Sink
 func CreateSink(ctx context.Context, ceClient cloudevents.Client) connector.Sink {
 	//logger := log.FromContext(ctx)
 	return &Sink{

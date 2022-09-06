@@ -36,7 +36,7 @@ type Sink interface {
 }
 
 func RunSink(sink Sink) {
-	logger := log.NewLogger()
+	logger := log.GetDefaultLogger()
 	logger.SetName(sink.Name())
 	sink.SetLogger(logger)
 	cfg, err := initConnectorConfig()

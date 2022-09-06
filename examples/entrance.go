@@ -16,9 +16,7 @@ limitations under the License.
 
 package main
 
-import (
-	"github.com/linkall-labs/cdk-go/connector"
-)
+import "github.com/linkall-labs/cdk-go/connector"
 
 func main() {
 	//The following codes run a HttpSource which retrieve http requests and
@@ -28,8 +26,8 @@ func main() {
 
 	//The EventDisplaySink simply receives CloudEvents and prints them.
 
-	go connector.RunSource("HttpSource", CreateSource)
+	//go connector.RunSource("HttpSource", CreateSource)
 
-	connector.RunSink("EventDisplay", CreateSink)
+	connector.RunSink(&Sink{})
 
 }
