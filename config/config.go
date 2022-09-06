@@ -17,9 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"context"
-	"github.com/linkall-labs/cdk-go/log"
-	"github.com/tidwall/gjson"
 	"os"
 	"strings"
 )
@@ -30,14 +27,12 @@ const (
 	VanceSinkDv       string = "http://localhost:8080"
 	VancePort         string = "v_port"
 	VancePortDv       string = "8080"
-	EtcdUrl           string = "etcd_url"
-	EtcdUrlDv         string = "localhost:2379"
 )
 
 // ConfigAccessor provides an easy way to obtain configs
 type ConfigAccessor struct {
 	DefaultValues map[string]string
-	ctx           context.Context
+	//Logger        logr.Logger
 }
 
 var Accessor ConfigAccessor
@@ -49,9 +44,7 @@ func init() {
 		DefaultValues: map[string]string{
 			VanceSink: VanceSinkDv,
 			VancePort: VancePortDv,
-			EtcdUrl:   EtcdUrlDv,
 		},
-		ctx: context.Background(),
 		//Logger: log.Log.WithName("ConfigAccessor"),
 	}
 	configPath := VanceConfigPathDv
@@ -59,24 +52,19 @@ func init() {
 	content, err := os.ReadFile(configPath)
 
 	if err != nil {
-		log.Info(Accessor.ctx, "read vance config failed", nil)
+		//Accessor.Logger.Info("read vance config failed")
 		content, err = os.ReadFile("./config.json")
 		if err != nil {
-			log.Error(Accessor.ctx, "read local config failed", map[string]interface{}{
-				log.KeyError: err,
-			})
+			//Accessor.Logger.Info("read local config failed")
 		}
 	}
 	if len(content) != 0 {
-		conf := gjson.ParseBytes(content).Map()
-		log.Info(Accessor.ctx, "conf length", map[string]interface{}{
-			"len": len(conf),
-		})
-
-		for k, v := range conf {
-			userConfig[k] = v.Str
-		}
-
+		//conf := gjson.ParseBytes(content).Map()
+		//Accessor.Logger.Info("conf length", "len", len(conf))
+		//
+		//for k, v := range conf {
+		//	userConfig[k] = v.Str
+		//}
 	}
 }
 
@@ -88,9 +76,7 @@ func (a *ConfigAccessor) Get(key string) string {
 	var ret string
 	ret, existed := os.LookupEnv(strings.ToUpper(key))
 	if !existed {
-		log.Info(a.ctx, "userConfig length", map[string]interface{}{
-			"len": len(userConfig),
-		})
+		//a.Logger.Info("userConfig length", "len", len(userConfig))
 		ret = userConfig[key]
 	}
 	return ret
@@ -109,7 +95,4 @@ func (a *ConfigAccessor) VanceSink() string {
 }
 func (a *ConfigAccessor) VancePort() string {
 	return a.getOrDefault(VancePort)
-}
-func (a *ConfigAccessor) EtcdUrl() string {
-	return a.getOrDefault(EtcdUrl)
 }

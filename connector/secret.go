@@ -14,11 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cdkgo
+package connector
 
-import "github.com/linkall-labs/cdk-go/connector"
-
-var (
-	RunSource = connector.RunSource
-	RunSink   = connector.RunSink
+import (
+	"os"
+	"strconv"
 )
+
+const (
+	isSecretEnable = "CONNECTOR_SECRET_ENABLE"
+)
+
+func IsSecretEnable() bool {
+	isEnable, err := strconv.ParseBool(os.Getenv(isSecretEnable))
+	if err != nil {
+		return false
+	}
+	return isEnable
+}
