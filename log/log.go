@@ -62,8 +62,8 @@ func init() {
 
 var vLog Logger
 
-func NewLogger() Logger {
-	return &defaultLogger{}
+func GetLogger() Logger {
+	return vLog
 }
 
 type defaultLogger struct {

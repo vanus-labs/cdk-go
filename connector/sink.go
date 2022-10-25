@@ -19,13 +19,13 @@ package connector
 import (
 	"context"
 	"fmt"
-	"github.com/cloudevents/sdk-go/v2/client"
-	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
 	"net"
 	"os"
 
 	v2 "github.com/cloudevents/sdk-go/v2"
+	"github.com/cloudevents/sdk-go/v2/client"
 	"github.com/cloudevents/sdk-go/v2/protocol"
+	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/linkall-labs/cdk-go/log"
 	cdkutil "github.com/linkall-labs/cdk-go/utils"
 )
@@ -36,7 +36,7 @@ type Sink interface {
 }
 
 func RunSink(sink Sink) {
-	logger := log.NewLogger()
+	logger := log.GetLogger()
 	logger.SetName(sink.Name())
 	sink.SetLogger(logger)
 	cfg, err := initConnectorConfig()

@@ -25,7 +25,9 @@ import (
 
 func ParseConfig(file string, v interface{}) error {
 	data, err := os.ReadFile(file)
-
+	if err != nil {
+		return err
+	}
 	if strings.HasSuffix(file, "json") {
 		err = json.Unmarshal(data, v)
 	} else {

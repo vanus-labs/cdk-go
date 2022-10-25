@@ -18,9 +18,10 @@ package connector
 
 import (
 	"fmt"
-	cdkutil "github.com/linkall-labs/cdk-go/utils"
 	"os"
 	"strconv"
+
+	cdkutil "github.com/linkall-labs/cdk-go/utils"
 )
 
 type StateStore string
@@ -46,23 +47,32 @@ type Config struct {
 
 func initConnectorConfig() (*Config, error) {
 	cfg := &Config{}
+	configFile := os.Getenv(configFileEnv)
+	if configFile == "" {
+		// default path
+		configFile = "./config.json"
+	}
+
 	if err := cdkutil.ParseConfig(os.Getenv(configFileEnv), cfg); err != nil {
 		return nil, err
 	}
 
 	if cfg.Target == "" {
 		cfg.Target = os.Getenv(targetEndpointEnv)
-		if cfg.Target == "" {
-			return nil, fmt.Errorf("the v_target can't be empty")
-		}
 	}
 
 	if cfg.Port <= 0 {
-		p, err := strconv.ParseInt(os.Getenv(portEnv), 10, 16)
-		if err != nil {
-			return nil, fmt.Errorf("the v_port is empty or invalid")
+		portStr := os.Getenv(portEnv)
+		if portStr != "" {
+			p, err := strconv.ParseInt(portStr, 10, 16)
+			if err != nil {
+				return nil, fmt.Errorf("the v_port invalid")
+			}
+			cfg.Port = int(p)
+		} else {
+			// default port
+			cfg.Port = 8080
 		}
-		cfg.Port = int(p)
 	}
 	return cfg, nil
 }
