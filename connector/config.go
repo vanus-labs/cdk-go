@@ -50,7 +50,7 @@ func initConnectorConfig() (*Config, error) {
 	configFile := os.Getenv(configFileEnv)
 	if configFile == "" {
 		// default path
-		configFile = "./config.json"
+		configFile = "./config.yaml"
 	}
 
 	if err := cdkutil.ParseConfig(os.Getenv(configFileEnv), cfg); err != nil {
