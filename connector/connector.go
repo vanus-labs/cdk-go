@@ -18,7 +18,6 @@ package connector
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/linkall-labs/cdk-go/log"
@@ -31,30 +30,18 @@ type Connector interface {
 	Destroy() error
 }
 
-//type Source interface {
-//	Connector
-//	Start() error
-//	Stop() error
-//	Receive(ctx context.Context) error
-//}
-//
-//func RunSource(source Source) {
-//}
-
-func wait(ctx context.Context, c Connector, f func(), cfg *Config) {
+func wait(ctx context.Context, c Connector, f func() error) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		f()
+		if err := f(); err != nil {
+			panic(err)
+		}
 		wg.Done()
 	}()
-	log.Info(ctx, "the connector started", map[string]interface{}{
-		log.ConnectorName: c.Name(),
-		"listening":       fmt.Sprintf(":%d", cfg.Port),
-	})
 	select {
 	case <-ctx.Done():
-		log.Info(ctx, "received system signal, preparing to exit tge connector", map[string]interface{}{
+		log.Info("received system signal, preparing to exit tge connector", map[string]interface{}{
 			"name": c.Name(),
 		})
 	}

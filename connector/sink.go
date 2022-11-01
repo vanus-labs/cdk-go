@@ -50,29 +50,34 @@ func RunSink(sink Sink) {
 	var ctx = cdkutil.SetupSignalContext()
 	ctx = context.WithValue(ctx, log.ConnectorName, sink.Name())
 
-	run := func() {
+	run := func() error {
 		ls, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
 		if err != nil {
-			panic(fmt.Sprintf("Failed to listen port: %d", cfg.Port))
+			return fmt.Errorf("failed to listen port: %d", cfg.Port)
 		}
 
 		c, err := client.NewHTTP(cehttp.WithListener(ls), cehttp.WithRequestDataAtContextMiddleware())
 		if err != nil {
-			panic(fmt.Sprintf("Failed to init cloudevnets client: %s", err))
+			return fmt.Errorf("failed to init cloudevnets client: %s", err)
 		}
 
 		err = c.StartReceiver(ctx, sink.Receive)
 		if err != nil {
-			panic(fmt.Sprintf("Failed to start cloudevnets receiver: %s", err))
+			return fmt.Errorf("failed to start cloudevnets receiver: %s", err)
 		}
+		log.Info("the connector started", map[string]interface{}{
+			log.ConnectorName: sink.Name(),
+			"listening":       fmt.Sprintf(":%d", cfg.Port),
+		})
+		return nil
 	}
-	wait(ctx, sink, run, cfg)
+	wait(ctx, sink, run)
 	if err := sink.Destroy(); err != nil {
-		log.Warning(ctx, "there was error when destroy sink", map[string]interface{}{
+		log.Warning("there was error when destroy sink", map[string]interface{}{
 			log.KeyError: err,
 		})
 	} else {
-		log.Info(ctx, "the sink server has been shutdown gracefully", map[string]interface{}{
+		log.Info("the sink server has been shutdown gracefully", map[string]interface{}{
 			log.ConnectorName: sink.Name(),
 		})
 	}
