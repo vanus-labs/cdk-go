@@ -61,10 +61,12 @@ func RunSink(sink Sink) {
 			return fmt.Errorf("failed to init cloudevnets client: %s", err)
 		}
 
-		err = c.StartReceiver(ctx, sink.Receive)
-		if err != nil {
-			return fmt.Errorf("failed to start cloudevnets receiver: %s", err)
-		}
+		go func() {
+			err = c.StartReceiver(ctx, sink.Receive)
+			if err != nil {
+				panic(fmt.Sprintf("failed to start cloudevnets receiver: %s", err))
+			}
+		}()
 		log.Info("the connector started", map[string]interface{}{
 			log.ConnectorName: sink.Name(),
 			"listening":       fmt.Sprintf(":%d", cfg.Port),

@@ -38,10 +38,10 @@ var (
 )
 
 type Config struct {
-	Target    string     `json:"v_target" yaml:"vTarget"`
-	Port      int        `json:"v_port" yaml:"vPort"`
-	StoreType StateStore `json:"v_store_type" yaml:"vStoreType"`
-	StoreURI  string     `json:"v_store_uri" yaml:"vStoreURI"`
+	Target    string     `json:"v_target" yaml:"v_target"`
+	Port      int        `json:"v_port" yaml:"v_port"`
+	StoreType StateStore `json:"v_store_type" yaml:"v_store_type"`
+	StoreURI  string     `json:"v_store_uri" yaml:"v_store_uri"`
 }
 
 func initConnectorConfig() (*Config, error) {
