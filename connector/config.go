@@ -17,10 +17,8 @@ limitations under the License.
 package connector
 
 import (
-	"fmt"
 	cdkutil "github.com/linkall-labs/cdk-go/utils"
 	"os"
-	"strconv"
 )
 
 type StateStore string
@@ -50,19 +48,5 @@ func initConnectorConfig() (*Config, error) {
 		return nil, err
 	}
 
-	if cfg.Target == "" {
-		cfg.Target = os.Getenv(targetEndpointEnv)
-		if cfg.Target == "" {
-			return nil, fmt.Errorf("the v_target can't be empty")
-		}
-	}
-
-	if cfg.Port <= 0 {
-		p, err := strconv.ParseInt(os.Getenv(portEnv), 10, 16)
-		if err != nil {
-			return nil, fmt.Errorf("the v_port is empty or invalid")
-		}
-		cfg.Port = int(p)
-	}
 	return cfg, nil
 }

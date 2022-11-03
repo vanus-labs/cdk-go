@@ -23,6 +23,7 @@ import (
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
 	"net"
 	"os"
+	"strconv"
 
 	v2 "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
@@ -42,6 +43,14 @@ func RunSink(sink Sink) {
 	cfg, err := initConnectorConfig()
 	if err != nil {
 		panic("init global config file failed: " + err.Error())
+	}
+
+	if cfg.Port <= 0 {
+		p, err := strconv.ParseInt(os.Getenv(portEnv), 10, 16)
+		if err != nil {
+			panic("sink: the v_port is empty or invalid")
+		}
+		cfg.Port = int(p)
 	}
 
 	if err := sink.Init(os.Getenv(configFileEnv), os.Getenv(secretFileEnv)); err != nil {

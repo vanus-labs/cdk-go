@@ -38,10 +38,18 @@ func RunSource(source Source) {
 	logger := log.NewLogger()
 	logger.SetName(source.Name())
 	source.SetLogger(logger)
-	//cfg, err := initConnectorConfig()
-	//if err != nil {
-	//	panic("init global config file failed: " + err.Error())
-	//}
+	cfg, err := initConnectorConfig()
+	if err != nil {
+		panic("init global config file failed: " + err.Error())
+	}
+
+	if cfg.Target == "" {
+		cfg.Target = os.Getenv(targetEndpointEnv)
+		if cfg.Target == "" {
+			panic("source: the v_target can't be empty")
+		}
+	}
+
 	logger.Info("init global configuration success", nil)
 
 	if err := source.Init(os.Getenv(configFileEnv), os.Getenv(secretFileEnv)); err != nil {
