@@ -62,7 +62,9 @@ func init() {
 var vLog Logger
 
 func NewLogger() Logger {
-	return &defaultLogger{}
+	return &defaultLogger{
+		logger: logrus.New(),
+	}
 }
 
 type defaultLogger struct {
