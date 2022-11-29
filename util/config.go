@@ -14,21 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package connector
+package util
 
 import (
+	"encoding/json"
 	"os"
-	"strconv"
+	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
-const (
-	isSecretEnable = "CONNECTOR_SECRET_ENABLE"
-)
-
-func IsSecretEnable() bool {
-	isEnable, err := strconv.ParseBool(os.Getenv(isSecretEnable))
+func ParseConfig(file string, v interface{}) error {
+	data, err := os.ReadFile(file)
 	if err != nil {
-		return false
+		return err
 	}
-	return isEnable
+
+	if strings.HasSuffix(file, "json") {
+		err = json.Unmarshal(data, v)
+	} else {
+		err = yaml.Unmarshal(data, v)
+	}
+	return err
 }

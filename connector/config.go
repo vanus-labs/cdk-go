@@ -1,68 +1,116 @@
-/*
-Copyright 2022-Present The Vance Authors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2022 Linkall Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package connector
 
 import (
-	"fmt"
-	cdkutil "github.com/linkall-labs/cdk-go/utils"
 	"os"
 	"strconv"
+
+	"github.com/linkall-labs/cdk-go/util"
 )
 
-type StateStore string
+type Type string
 
 const (
-	targetEndpointEnv = "CONNECTOR_TARGET"
-	portEnv           = "CONNECTOR_PORT"
-	configFileEnv     = "CONNECTOR_CONFIG"
-	secretFileEnv     = "CONNECTOR_SECRET"
+	SinkConnector   Type = "sink"
+	SourceConnector Type = "source"
 )
 
-var (
-	fileStateStore = StateStore("file")
-	etcdStateStore = StateStore("etcd")
-)
-
-type Config struct {
-	Target    string     `json:"v_target" yaml:"vTarget"`
-	Port      int        `json:"v_port" yaml:"vPort"`
-	StoreType StateStore `json:"v_store_type" yaml:"vStoreType"`
-	StoreURI  string     `json:"v_store_uri" yaml:"vStoreURI"`
+type ConnectorConfigAccessor interface {
+	ConnectorType() Type
 }
 
-func initConnectorConfig() (*Config, error) {
-	cfg := &Config{}
-	if err := cdkutil.ParseConfig(os.Getenv(configFileEnv), cfg); err != nil {
-		return nil, err
-	}
+type SourceConfigAccessor interface {
+	ConnectorConfigAccessor
+	GetTarget() string
+	GetAttempts() int
+}
 
-	if cfg.Target == "" {
-		cfg.Target = os.Getenv(targetEndpointEnv)
-		if cfg.Target == "" {
-			return nil, fmt.Errorf("the v_target can't be empty")
+var _ SourceConfigAccessor = &SourceConfig{}
+
+type SourceConfig struct {
+	Target string `json:"v_target" yaml:"v_target"`
+	// SendEventRetry send event max attempts, 0 will retry when success, default is 3.
+	SendEventAttempts *int `json:"send_event_attempts" yaml:"send_event_attempts"`
+}
+
+func (c *SourceConfig) ConnectorType() Type {
+	return SourceConnector
+}
+
+func (c *SourceConfig) GetAttempts() int {
+	if c.SendEventAttempts == nil {
+		return defaultAttempts
+	}
+	return *c.SendEventAttempts
+}
+
+func (c *SourceConfig) GetTarget() string {
+	if c.Target != "" {
+		return c.Target
+	}
+	return os.Getenv(EnvTarget)
+}
+
+var _ SinkConfigAccessor = &SinkConfig{}
+
+type SinkConfigAccessor interface {
+	ConnectorConfigAccessor
+	GetPort() int
+}
+
+type SinkConfig struct {
+	Port int `json:"v_port" yaml:"v_port"`
+}
+
+func (c *SinkConfig) ConnectorType() Type {
+	return SinkConnector
+}
+
+func (c *SinkConfig) GetPort() int {
+	if c.Port > 0 {
+		return c.Port
+	}
+	portStr := os.Getenv(EnvPort)
+	if portStr != "" {
+		p, err := strconv.ParseInt(EnvPort, 10, 16)
+		if err == nil {
+			return int(p)
 		}
 	}
+	return defaultPort
+}
 
-	if cfg.Port <= 0 {
-		p, err := strconv.ParseInt(os.Getenv(portEnv), 10, 16)
-		if err != nil {
-			return nil, fmt.Errorf("the v_port is empty or invalid")
-		}
-		cfg.Port = int(p)
+const (
+	EnvTarget     = "CONNECTOR_TARGET"
+	EnvPort       = "CONNECTOR_PORT"
+	EnvConfigFile = "CONNECTOR_CONFIG"
+	secretFileEnv = "CONNECTOR_SECRET"
+
+	defaultPort     = 8080
+	defaultAttempts = 3
+)
+
+func ParseConfig(cfg ConnectorConfigAccessor) error {
+	file := os.Getenv(EnvConfigFile)
+	if file == "" {
+		file = "config.yaml"
 	}
-	return cfg, nil
+	err := util.ParseConfig(file, cfg)
+	if err != nil {
+		return err
+	}
+	return nil
 }

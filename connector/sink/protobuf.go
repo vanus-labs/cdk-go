@@ -21,8 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/linkall-labs/cdk-go/connector"
-	"github.com/linkall-labs/cdk-go/log"
 	"net/http"
 
 	v2 "github.com/cloudevents/sdk-go/v2"
@@ -30,6 +28,7 @@ import (
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/linkall-labs/cdk-go/connector"
 )
 
 type ProtobufSink interface {
@@ -49,7 +48,7 @@ type protobufSinkApplication struct {
 	sink ProtobufSink
 }
 
-func (sa *protobufSinkApplication) Receive(ctx context.Context, event v2.Event) protocol.Result {
+func (sa *protobufSinkApplication) EmitEvent(ctx context.Context, event v2.Event) protocol.Result {
 	e := sa.sink.NewEvent()
 	if err := jsonpb.Unmarshal(bytes.NewReader(event.Data()), e); err != nil {
 		return cehttp.NewResult(http.StatusBadRequest,
@@ -95,10 +94,6 @@ func (sa *protobufSinkApplication) Name() string {
 	return sa.sink.Name()
 }
 
-func (sa *protobufSinkApplication) SetLogger(logger log.Logger) {
-	sa.sink.SetLogger(logger)
-}
-
-func (sa *protobufSinkApplication) Init(cfgPath, secretPath string) error {
-	return sa.sink.Init(cfgPath, secretPath)
+func (sa *protobufSinkApplication) Initialize(ctx context.Context, cfg connector.ConnectorConfigAccessor) error {
+	return sa.sink.Initialize(ctx, cfg)
 }

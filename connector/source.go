@@ -14,22 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cdkutil
+package connector
 
 import (
-	"encoding/json"
-	"gopkg.in/yaml.v2"
-	"os"
-	"strings"
+	ce "github.com/cloudevents/sdk-go/v2"
 )
 
-func ParseConfig(file string, v interface{}) error {
-	data, err := os.ReadFile(file)
-
-	if strings.HasSuffix(file, "json") {
-		err = json.Unmarshal(data, v)
-	} else {
-		err = yaml.Unmarshal(data, v)
-	}
-	return err
+// Source is the interface a source connector expected to implement.
+type Source interface {
+	Connector
+	// PollEvent transform private data to CloudEvents.The method should block when no event exists.
+	PollEvent() ce.Event
+	// Commit send event success will call.
+	Commit(event ce.Event)
 }

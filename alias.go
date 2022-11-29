@@ -16,9 +16,11 @@ limitations under the License.
 
 package cdkgo
 
-import "github.com/linkall-labs/cdk-go/connector"
+import (
+	"github.com/linkall-labs/cdk-go/runtime"
+)
 
 var (
-	RunSource = connector.RunSource
-	RunSink   = connector.RunSink
+	RunSource = runtime.RunSource
+	RunSink   = runtime.RunSink
 )

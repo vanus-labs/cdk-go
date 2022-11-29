@@ -18,62 +18,12 @@ package connector
 
 import (
 	"context"
-	"fmt"
-	"github.com/cloudevents/sdk-go/v2/client"
-	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
-	"net"
-	"os"
 
-	v2 "github.com/cloudevents/sdk-go/v2"
-	"github.com/cloudevents/sdk-go/v2/protocol"
-	"github.com/linkall-labs/cdk-go/log"
-	cdkutil "github.com/linkall-labs/cdk-go/utils"
+	ce "github.com/cloudevents/sdk-go/v2"
 )
 
 type Sink interface {
 	Connector
-	Receive(ctx context.Context, event v2.Event) protocol.Result
-}
-
-func RunSink(sink Sink) {
-	logger := log.NewLogger()
-	logger.SetName(sink.Name())
-	sink.SetLogger(logger)
-	cfg, err := initConnectorConfig()
-	if err != nil {
-		panic("init global config file failed: " + err.Error())
-	}
-
-	if err := sink.Init(os.Getenv(configFileEnv), os.Getenv(secretFileEnv)); err != nil {
-		panic("init config file failed: " + err.Error())
-	}
-	var ctx = cdkutil.SetupSignalContext()
-	ctx = context.WithValue(ctx, log.ConnectorName, sink.Name())
-
-	run := func() {
-		ls, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
-		if err != nil {
-			panic(fmt.Sprintf("Failed to listen port: %d", cfg.Port))
-		}
-
-		c, err := client.NewHTTP(cehttp.WithListener(ls), cehttp.WithRequestDataAtContextMiddleware())
-		if err != nil {
-			panic(fmt.Sprintf("Failed to init cloudevnets client: %s", err))
-		}
-
-		err = c.StartReceiver(ctx, sink.Receive)
-		if err != nil {
-			panic(fmt.Sprintf("Failed to start cloudevnets receiver: %s", err))
-		}
-	}
-	wait(ctx, sink, run, cfg)
-	if err := sink.Destroy(); err != nil {
-		log.Warning(ctx, "there was error when destroy sink", map[string]interface{}{
-			log.KeyError: err,
-		})
-	} else {
-		log.Info(ctx, "the sink server has been shutdown gracefully", map[string]interface{}{
-			log.ConnectorName: sink.Name(),
-		})
-	}
+	// EmitEvent receive an event will call this method.
+	EmitEvent(ctx context.Context, event ce.Event) ce.Result
 }
