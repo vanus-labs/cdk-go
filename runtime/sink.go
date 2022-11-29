@@ -58,7 +58,7 @@ func (w *sinkWorker) Start(ctx context.Context) error {
 	}
 	ceClient, err := ce.NewClientHTTP(ce.WithListener(ls))
 	if err != nil {
-		return errors.Wrapf(err, "failed to init cloudevents client")
+		return errors.Wrap(err, "failed to init cloudevents client")
 	}
 	w.wg.Add(1)
 	go func() {

@@ -22,11 +22,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/uuid"
-
-	cdkgo "github.com/linkall-labs/cdk-go"
-
 	ce "github.com/cloudevents/sdk-go/v2"
+	cdkgo "github.com/linkall-labs/cdk-go"
 	"github.com/linkall-labs/cdk-go/connector"
 )
 
@@ -59,11 +56,12 @@ func (s *ExampleSource) PollEvent() ce.Event {
 	time.Sleep(time.Second)
 	s.number++
 	event := ce.NewEvent()
-	event.SetID(uuid.New().String())
+	event.SetID(fmt.Sprintf("id-%d", s.number))
 	event.SetSource(s.cfg.Source)
 	event.SetType("testType")
 	event.SetData(ce.ApplicationJSON, map[string]interface{}{
 		"number": s.number,
+		"string": fmt.Sprintf("str-%d", s.number),
 	})
 	return event
 }

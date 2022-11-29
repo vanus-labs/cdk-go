@@ -20,11 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
 	ce "github.com/cloudevents/sdk-go/v2"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
+	"github.com/pkg/errors"
 )
 
 type SourceConfigConstructor func() connector.SourceConfigAccessor
@@ -57,7 +56,7 @@ func (w *SourceWorker) Start(ctx context.Context) error {
 	target := w.cfg.GetTarget()
 	ceClient, err := ce.NewClientHTTP(ce.WithTarget(target))
 	if err != nil {
-		return errors.Wrap(err, "failed to init ce client: %s")
+		return errors.Wrap(err, "failed to init ce client")
 	}
 	w.ceClient = ceClient
 	w.wg.Add(1)

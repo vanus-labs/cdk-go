@@ -21,9 +21,8 @@ import (
 	"fmt"
 	"os"
 
-	cdkgo "github.com/linkall-labs/cdk-go"
-
 	ce "github.com/cloudevents/sdk-go/v2"
+	cdkgo "github.com/linkall-labs/cdk-go"
 	"github.com/linkall-labs/cdk-go/connector"
 )
 

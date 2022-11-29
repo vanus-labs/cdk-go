@@ -29,7 +29,7 @@ func runConnector(cfg connector.ConnectorConfigAccessor, c connector.Connector) 
 	if err != nil {
 		return errors.Wrap(err, "init source config error")
 	}
-	ctx := util.SetupSignalContext()
+	ctx := util.SignalContext()
 	err = c.Initialize(ctx, cfg)
 	if err != nil {
 		return errors.Wrap(err, "connector initialize failed")

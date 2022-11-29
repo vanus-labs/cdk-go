@@ -41,28 +41,22 @@ func init() {
 		logger: logger,
 	}
 	level := os.Getenv("LOG_LEVEL")
-	switch strings.ToLower(level) {
-	case "debug":
-		r.logger.SetLevel(logrus.DebugLevel)
-	case "warn":
-		r.logger.SetLevel(logrus.WarnLevel)
-	case "error":
-		r.logger.SetLevel(logrus.ErrorLevel)
-	case "fatal":
-		r.logger.SetLevel(logrus.FatalLevel)
-	default:
-		r.logger.SetLevel(logrus.InfoLevel)
-	}
+	r.SetLevel(level)
 	vLog = r
-	vLog.Debug("logger level has been set", map[string]interface{}{
+	vLog.Info("logger level has been set", map[string]interface{}{
 		"log_level": level,
 	})
 }
 
 var vLog Logger
 
-func GetLogger() Logger {
-	return vLog
+func NewLogger() Logger {
+	l := &defaultLogger{
+		logger: logrus.New(),
+	}
+	level := os.Getenv("LOG_LEVEL")
+	l.SetLevel(level)
+	return l
 }
 
 type defaultLogger struct {
@@ -99,7 +93,7 @@ func (l *defaultLogger) Error(msg string, fields map[string]interface{}) {
 	if msg == "" && len(fields) == 0 {
 		return
 	}
-	l.logger.WithFields(fields).WithFields(fields).Error(msg)
+	l.logger.WithFields(fields).Error(msg)
 }
 
 func (l *defaultLogger) Fatal(msg string, fields map[string]interface{}) {
