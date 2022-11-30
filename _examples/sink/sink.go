@@ -35,7 +35,7 @@ type ExampleSink struct {
 	number int
 }
 
-func (s *ExampleSink) Initialize(ctx context.Context, cfg connector.ConnectorConfigAccessor) error {
+func (s *ExampleSink) Initialize(ctx context.Context, cfg connector.ConfigAccessor) error {
 	config := cfg.(*Config)
 	s.number = config.Count
 	return nil
@@ -55,7 +55,7 @@ func (s *ExampleSink) EmitEvent(ctx context.Context, event ce.Event) ce.Result {
 }
 
 func main() {
-	configPath := flag.String("config", "./_examples/sink/config.yaml", "the cfg file")
+	configPath := flag.String("config", "./_examples/sink/config.yaml", "the config file")
 	os.Setenv(connector.EnvConfigFile, *configPath)
 	cdkgo.RunSink(&Config{}, &ExampleSink{})
 }

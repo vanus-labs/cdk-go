@@ -28,22 +28,22 @@ const (
 	SourceConnector Type = "source"
 )
 
-type ConnectorConfigAccessor interface {
+type ConfigAccessor interface {
 	ConnectorType() Type
 }
 
 type SourceConfigAccessor interface {
-	ConnectorConfigAccessor
+	ConfigAccessor
 	GetTarget() string
+	// GetAttempts send event max attempts, 0 will retry util success, default is 3.
 	GetAttempts() int
 }
 
 var _ SourceConfigAccessor = &SourceConfig{}
 
 type SourceConfig struct {
-	Target string `json:"v_target" yaml:"v_target"`
-	// SendEventRetry send event max attempts, 0 will retry when success, default is 3.
-	SendEventAttempts *int `json:"send_event_attempts" yaml:"send_event_attempts"`
+	Target            string `json:"v_target" yaml:"v_target"`
+	SendEventAttempts *int   `json:"send_event_attempts" yaml:"send_event_attempts"`
 }
 
 func (c *SourceConfig) ConnectorType() Type {
@@ -67,7 +67,8 @@ func (c *SourceConfig) GetTarget() string {
 var _ SinkConfigAccessor = &SinkConfig{}
 
 type SinkConfigAccessor interface {
-	ConnectorConfigAccessor
+	ConfigAccessor
+	// GetPort receive event server use port, default 8080
 	GetPort() int
 }
 
@@ -103,7 +104,7 @@ const (
 	defaultAttempts = 3
 )
 
-func ParseConfig(cfg ConnectorConfigAccessor) error {
+func ParseConfig(cfg ConfigAccessor) error {
 	file := os.Getenv(EnvConfigFile)
 	if file == "" {
 		file = "config.yaml"

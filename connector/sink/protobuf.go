@@ -94,6 +94,6 @@ func (sa *protobufSinkApplication) Name() string {
 	return sa.sink.Name()
 }
 
-func (sa *protobufSinkApplication) Initialize(ctx context.Context, cfg connector.ConnectorConfigAccessor) error {
+func (sa *protobufSinkApplication) Initialize(ctx context.Context, cfg connector.ConfigAccessor) error {
 	return sa.sink.Initialize(ctx, cfg)
 }

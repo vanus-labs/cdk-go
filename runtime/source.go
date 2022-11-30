@@ -20,13 +20,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/linkall-labs/cdk-go/util"
+
 	ce "github.com/cloudevents/sdk-go/v2"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
 	"github.com/pkg/errors"
 )
-
-type SourceConfigConstructor func() connector.SourceConfigAccessor
 
 func RunSource(cfg connector.SourceConfigAccessor, source connector.Source) {
 	err := runConnector(cfg, source)
@@ -45,10 +45,10 @@ type SourceWorker struct {
 	wg       sync.WaitGroup
 }
 
-func newSourceWorker(cfg connector.SourceConfigAccessor, Source connector.Source) Worker {
+func newSourceWorker(cfg connector.SourceConfigAccessor, source connector.Source) Worker {
 	return &SourceWorker{
 		cfg:    cfg,
-		source: Source,
+		source: source,
 	}
 }
 
@@ -86,35 +86,42 @@ func (w *SourceWorker) execute(ctx context.Context) {
 func (w *SourceWorker) sendEvent(ctx context.Context, event ce.Event) {
 	var attempt int
 	for {
-		err := func() error {
+		result := func() ce.Result {
 			ceCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 			defer cancel()
 			return w.ceClient.Send(ceCtx, event)
 		}()
-		if ce.IsACK(err) {
-			w.source.Commit(event)
-			return
-		}
-		if errors.Is(err, context.Canceled) {
-			return
-		}
 		attempt++
-		if w.cfg.GetAttempts() <= 0 || attempt < w.cfg.GetAttempts() {
-			log.Info("send event fail,will retry", map[string]interface{}{
-				log.KeyError: err,
+		if ce.IsACK(result) {
+			w.source.Commit(event)
+			log.Debug("send event success", map[string]interface{}{
+				"event":   event,
+				"attempt": attempt,
+			})
+			return
+		}
+		if errors.Is(result, context.Canceled) || !w.needAttempt(attempt) {
+			log.Error("send event fail", map[string]interface{}{
+				log.KeyError: result,
 				"attempt":    attempt,
 				"event":      event,
 			})
-			time.Sleep(time.Second)
-			continue
+			return
 		}
-		log.Warning("send event fail", map[string]interface{}{
-			log.KeyError: err,
+		log.Info("send event failed,will retry", map[string]interface{}{
+			log.KeyError: result,
 			"attempt":    attempt,
 			"event":      event,
 		})
-		return
+		time.Sleep(util.Backoff(attempt, time.Second*5))
 	}
+}
+
+func (w *SourceWorker) needAttempt(attempt int) bool {
+	if w.cfg.GetAttempts() <= 0 {
+		return true
+	}
+	return attempt < w.cfg.GetAttempts()
 }
 
 func (w *SourceWorker) Stop() error {

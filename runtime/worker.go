@@ -24,7 +24,7 @@ import (
 	"github.com/linkall-labs/cdk-go/util"
 )
 
-func runConnector(cfg connector.ConnectorConfigAccessor, c connector.Connector) error {
+func runConnector(cfg connector.ConfigAccessor, c connector.Connector) error {
 	err := connector.ParseConfig(cfg)
 	if err != nil {
 		return errors.Wrap(err, "init source config error")
@@ -63,7 +63,7 @@ type Worker interface {
 	Stop() error
 }
 
-func getWorker(cfg connector.ConnectorConfigAccessor, c connector.Connector) Worker {
+func getWorker(cfg connector.ConfigAccessor, c connector.Connector) Worker {
 	switch cfg.ConnectorType() {
 	case connector.SourceConnector:
 		return newSourceWorker(cfg.(connector.SourceConfigAccessor), c.(connector.Source))

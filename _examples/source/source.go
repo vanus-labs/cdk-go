@@ -37,7 +37,7 @@ type ExampleSource struct {
 	cfg    *Config
 }
 
-func (s *ExampleSource) Initialize(ctx context.Context, cfg connector.ConnectorConfigAccessor) error {
+func (s *ExampleSource) Initialize(ctx context.Context, cfg connector.ConfigAccessor) error {
 	config := cfg.(*Config)
 	s.cfg = config
 	return nil
@@ -72,7 +72,7 @@ func (s *ExampleSource) Commit(event ce.Event) {
 }
 
 func main() {
-	configPath := flag.String("config", "./_examples/source/config.yaml", "the cfg file")
+	configPath := flag.String("config", "./_examples/source/config.yaml", "the config file")
 	os.Setenv(connector.EnvConfigFile, *configPath)
 	cdkgo.RunSource(&Config{}, &ExampleSource{})
 }

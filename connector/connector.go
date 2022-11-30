@@ -21,7 +21,7 @@ import (
 )
 
 type Connector interface {
-	Initialize(ctx context.Context, cfg ConnectorConfigAccessor) error
+	Initialize(ctx context.Context, cfg ConfigAccessor) error
 	Name() string
 	Destroy() error
 }
