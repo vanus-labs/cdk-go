@@ -14,29 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package connector
+package config
 
 import (
 	"net/url"
 	"os"
-	"strconv"
 
 	"github.com/pkg/errors"
-
-	"github.com/linkall-labs/cdk-go/util"
 )
-
-type Type string
-
-const (
-	SinkConnector   Type = "sink"
-	SourceConnector Type = "source"
-)
-
-type ConfigAccessor interface {
-	ConnectorType() Type
-	Validate() error
-}
 
 type SourceConfigAccessor interface {
 	ConfigAccessor
@@ -50,6 +35,10 @@ var _ SourceConfigAccessor = &SourceConfig{}
 type SourceConfig struct {
 	Target            string `json:"v_target" yaml:"v_target"`
 	SendEventAttempts *int   `json:"send_event_attempts" yaml:"send_event_attempts"`
+}
+
+func (c *SourceConfig) GetSecret() SecretAccessor {
+	return nil
 }
 
 func (c *SourceConfig) ConnectorType() Type {
@@ -80,60 +69,4 @@ func (c *SourceConfig) GetTarget() string {
 		return c.Target
 	}
 	return os.Getenv(EnvTarget)
-}
-
-var _ SinkConfigAccessor = &SinkConfig{}
-
-type SinkConfigAccessor interface {
-	ConfigAccessor
-	// GetPort receive event server use port, default 8080
-	GetPort() int
-}
-
-type SinkConfig struct {
-	Port int `json:"v_port" yaml:"v_port"`
-}
-
-func (c *SinkConfig) Validate() error {
-	return nil
-}
-
-func (c *SinkConfig) ConnectorType() Type {
-	return SinkConnector
-}
-
-func (c *SinkConfig) GetPort() int {
-	if c.Port > 0 {
-		return c.Port
-	}
-	portStr := os.Getenv(EnvPort)
-	if portStr != "" {
-		p, err := strconv.ParseInt(EnvPort, 10, 16)
-		if err == nil {
-			return int(p)
-		}
-	}
-	return defaultPort
-}
-
-const (
-	EnvTarget     = "CONNECTOR_TARGET"
-	EnvPort       = "CONNECTOR_PORT"
-	EnvConfigFile = "CONNECTOR_CONFIG"
-	secretFileEnv = "CONNECTOR_SECRET"
-
-	defaultPort     = 8080
-	defaultAttempts = 3
-)
-
-func ParseConfig(cfg ConfigAccessor) error {
-	file := os.Getenv(EnvConfigFile)
-	if file == "" {
-		file = "config.yaml"
-	}
-	err := util.ParseConfig(file, cfg)
-	if err != nil {
-		return err
-	}
-	return nil
 }

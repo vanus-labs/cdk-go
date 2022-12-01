@@ -24,12 +24,13 @@ import (
 	"sync"
 
 	ce "github.com/cloudevents/sdk-go/v2"
+	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
 	"github.com/pkg/errors"
 )
 
-func RunSink(cfg connector.SinkConfigAccessor, sink connector.Sink) {
+func RunSink(cfg config.SinkConfigAccessor, sink connector.Sink) {
 	err := runConnector(cfg, sink)
 	if err != nil {
 		log.Error("run sink error", map[string]interface{}{
@@ -40,12 +41,12 @@ func RunSink(cfg connector.SinkConfigAccessor, sink connector.Sink) {
 }
 
 type sinkWorker struct {
-	cfg  connector.SinkConfigAccessor
+	cfg  config.SinkConfigAccessor
 	sink connector.Sink
 	wg   sync.WaitGroup
 }
 
-func newSinkWorker(cfg connector.SinkConfigAccessor, sink connector.Sink) Worker {
+func newSinkWorker(cfg config.SinkConfigAccessor, sink connector.Sink) Worker {
 	return &sinkWorker{
 		cfg:  cfg,
 		sink: sink,
@@ -78,7 +79,8 @@ func (w *sinkWorker) Start(ctx context.Context) error {
 }
 
 func (w *sinkWorker) receive(ctx context.Context, event ce.Event) ce.Result {
-	return w.sink.EmitEvent(ctx, event)
+	result := w.sink.Arrived(ctx, &event)
+	return result.ConvertToCeResult()
 }
 
 func (w *sinkWorker) Stop() error {

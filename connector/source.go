@@ -23,8 +23,20 @@ import (
 // Source is the interface a source connector expected to implement.
 type Source interface {
 	Connector
-	// PollEvent transform relay data to CloudEvents.The method should block when no event exists.
-	PollEvent() ce.Event
-	// Commit send event success will call.
-	Commit(event ce.Event)
+	// Chan transform relay data to CloudEvents
+	Chan() <-chan *Tuple
+}
+
+type Tuple struct {
+	Event   *ce.Event
+	Success func()
+	Failed  func()
+}
+
+func NewTuple(event *ce.Event, success, failed func()) *Tuple {
+	return &Tuple{
+		Event:   event,
+		Success: success,
+		Failed:  failed,
+	}
 }

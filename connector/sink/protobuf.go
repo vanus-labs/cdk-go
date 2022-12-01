@@ -24,10 +24,9 @@ import (
 	"net/http"
 
 	v2 "github.com/cloudevents/sdk-go/v2"
-	"github.com/cloudevents/sdk-go/v2/protocol"
-	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/connector"
 )
 
@@ -48,42 +47,44 @@ type protobufSinkApplication struct {
 	sink ProtobufSink
 }
 
-func (sa *protobufSinkApplication) EmitEvent(ctx context.Context, event v2.Event) protocol.Result {
-	e := sa.sink.NewEvent()
-	if err := jsonpb.Unmarshal(bytes.NewReader(event.Data()), e); err != nil {
-		return cehttp.NewResult(http.StatusBadRequest,
-			fmt.Sprintf("parsing data error: %s", err.Error()))
-	}
+func (sa *protobufSinkApplication) Arrived(ctx context.Context, events ...*v2.Event) connector.Result {
+	for _, event := range events {
+		e := sa.sink.NewEvent()
+		if err := jsonpb.Unmarshal(bytes.NewReader(event.Data()), e); err != nil {
+			return connector.NewResult(http.StatusBadRequest,
+				fmt.Sprintf("parsing data error: %s", err.Error()))
+		}
 
-	m := map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"id":        event.ID(),
-			"source":    event.Source(),
-			"type":      event.Type(),
-			"time":      event.Time(),
-			"extension": event.Extensions(),
-		}}
-	data, err := json.Marshal(m)
-	if err != nil {
-		return cehttp.NewResult(http.StatusBadRequest,
-			fmt.Sprintf("parsing metadata error: %s", err.Error()))
-	}
+		m := map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"id":        event.ID(),
+				"source":    event.Source(),
+				"type":      event.Type(),
+				"time":      event.Time(),
+				"extension": event.Extensions(),
+			}}
+		data, err := json.Marshal(m)
+		if err != nil {
+			return connector.NewResult(http.StatusBadRequest,
+				fmt.Sprintf("parsing metadata error: %s", err.Error()))
+		}
 
-	if err = jsonpb.UnmarshalNext(json.NewDecoder(bytes.NewReader(data)), e); err != nil {
-		return cehttp.NewResult(http.StatusBadRequest,
-			fmt.Sprintf("unmarshall metadata error: %s", err.Error()))
-	}
+		if err = jsonpb.UnmarshalNext(json.NewDecoder(bytes.NewReader(data)), e); err != nil {
+			return connector.NewResult(http.StatusBadRequest,
+				fmt.Sprintf("unmarshall metadata error: %s", err.Error()))
+		}
 
-	if err := sa.sink.Validate(e); err != nil {
-		return cehttp.NewResult(http.StatusBadRequest,
-			fmt.Sprintf("validate event error: %s", err.Error()))
-	}
+		if err := sa.sink.Validate(e); err != nil {
+			return connector.NewResult(http.StatusBadRequest,
+				fmt.Sprintf("validate event error: %s", err.Error()))
+		}
 
-	if err := sa.sink.Handle(ctx, e); err != nil {
-		return cehttp.NewResult(http.StatusInternalServerError,
-			fmt.Sprintf("handle event error: %s", err.Error()))
+		if err := sa.sink.Handle(ctx, e); err != nil {
+			return connector.NewResult(http.StatusInternalServerError,
+				fmt.Sprintf("handle event error: %s", err.Error()))
+		}
 	}
-	return cehttp.NewResult(http.StatusOK, "")
+	return connector.Success
 }
 
 func (sa *protobufSinkApplication) Destroy() error {
@@ -94,6 +95,6 @@ func (sa *protobufSinkApplication) Name() string {
 	return sa.sink.Name()
 }
 
-func (sa *protobufSinkApplication) Initialize(ctx context.Context, cfg connector.ConfigAccessor) error {
+func (sa *protobufSinkApplication) Initialize(ctx context.Context, cfg config.ConfigAccessor) error {
 	return sa.sink.Initialize(ctx, cfg)
 }

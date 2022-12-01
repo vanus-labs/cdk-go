@@ -19,13 +19,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 
 	ce "github.com/cloudevents/sdk-go/v2"
 	cdkgo "github.com/linkall-labs/cdk-go"
-	"github.com/linkall-labs/cdk-go/connector"
+	"github.com/linkall-labs/cdk-go/config"
 )
 
 type Config struct {
@@ -50,15 +49,17 @@ func (s *ExampleSink) Name() string {
 func (s *ExampleSink) Destroy() error {
 	return nil
 }
-func (s *ExampleSink) EmitEvent(ctx context.Context, event ce.Event) ce.Result {
-	s.number++
-	b, _ := json.Marshal(event)
-	fmt.Println(s.number, string(b))
-	return nil
+
+func (s *ExampleSink) Arrived(ctx context.Context, events ...*ce.Event) cdkgo.Result {
+	for _, event := range events {
+		s.number++
+		b, _ := json.Marshal(event)
+		fmt.Println(s.number, string(b))
+	}
+	return cdkgo.SuccessResult
 }
 
 func main() {
-	configPath := flag.String("config", "./_examples/sink/config.yaml", "the config file")
-	os.Setenv(connector.EnvConfigFile, *configPath)
+	os.Setenv(config.EnvConfigFile, "./_examples/sink/config.yaml")
 	cdkgo.RunSink(&Config{}, &ExampleSink{})
 }

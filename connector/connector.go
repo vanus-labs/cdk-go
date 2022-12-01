@@ -18,10 +18,12 @@ package connector
 
 import (
 	"context"
+
+	"github.com/linkall-labs/cdk-go/config"
 )
 
 type Connector interface {
-	Initialize(ctx context.Context, cfg ConfigAccessor) error
+	Initialize(ctx context.Context, cfg config.ConfigAccessor) error
 	Name() string
 	Destroy() error
 }

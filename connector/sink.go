@@ -24,6 +24,27 @@ import (
 
 type Sink interface {
 	Connector
-	// EmitEvent receive an event will call this method.
-	EmitEvent(ctx context.Context, event ce.Event) ce.Result
+	// Arrived event arrived
+	Arrived(ctx context.Context, event ...*ce.Event) Result
 }
+
+type Code int
+type Result struct {
+	c   Code
+	msg string
+}
+
+func NewResult(c Code, msg string) Result {
+	return Result{c: c, msg: msg}
+}
+
+func (r Result) ConvertToCeResult() ce.Result {
+	if r == Success {
+		return nil
+	}
+	return ce.NewHTTPResult(int(r.c), r.msg)
+}
+
+var (
+	Success = NewResult(0, "success")
+)

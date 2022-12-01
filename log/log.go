@@ -40,9 +40,12 @@ func init() {
 		logger: logger,
 	}
 	level := os.Getenv("LOG_LEVEL")
+	if level == "" {
+		level = "INFO"
+	}
 	r.SetLevel(level)
 	vLog = r
-	vLog.Info("logger level has been set", map[string]interface{}{
+	vLog.Info("logger level is set", map[string]interface{}{
 		"log_level": level,
 	})
 }

@@ -19,29 +19,56 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
 	ce "github.com/cloudevents/sdk-go/v2"
 	cdkgo "github.com/linkall-labs/cdk-go"
-	"github.com/linkall-labs/cdk-go/connector"
+	"github.com/linkall-labs/cdk-go/config"
 )
 
 type Config struct {
 	cdkgo.SourceConfig `json:",inline" yaml:",inline"`
 	Source             string `json:"source" yaml:"source" validate:"required"`
+	Secret             Secret
+}
+
+func (c *Config) GetSecret() cdkgo.SecretAccessor {
+	return &c.Secret
+}
+
+type Secret struct {
+	Host     string `json:"host" yaml:"host" validate:"required"`
+	Username string `json:"username" yaml:"username" validate:"required"`
+	Password string `json:"password" yaml:"password" validate:"required"`
 }
 
 type ExampleSource struct {
 	number int
-	cfg    *Config
+	source string
+	events chan *cdkgo.Tuple
 }
 
-func (s *ExampleSource) Initialize(ctx context.Context, cfg connector.ConfigAccessor) error {
+func (s *ExampleSource) Initialize(ctx context.Context, cfg cdkgo.ConfigAccessor) error {
 	config := cfg.(*Config)
-	s.cfg = config
+	s.source = config.Source
+	fmt.Println(config.Secret)
+	s.events = make(chan *cdkgo.Tuple, 100)
+	go func() {
+		for {
+			event := s.makeEvent()
+			b, _ := json.Marshal(event)
+			success := func() {
+				fmt.Println("send event success: " + string(b))
+			}
+			failed := func() {
+				fmt.Println("send event failed: " + string(b))
+			}
+			s.events <- cdkgo.NewTuple(event, success, failed)
+		}
+	}()
 	return nil
 }
 
@@ -54,27 +81,28 @@ func (s *ExampleSource) Destroy() error {
 	return nil
 }
 
-func (s *ExampleSource) PollEvent() ce.Event {
-	time.Sleep(time.Second)
+func (s *ExampleSource) Chan() <-chan *cdkgo.Tuple {
+	return s.events
+}
+
+func (s *ExampleSource) makeEvent() *ce.Event {
+	rand.Seed(time.Now().UnixMilli())
+	time.Sleep(time.Millisecond * time.Duration(rand.Intn(2000)+100))
 	s.number++
 	event := ce.NewEvent()
 	event.SetID(fmt.Sprintf("id-%d", s.number))
-	event.SetSource(s.cfg.Source)
+	event.SetSource(s.source)
 	event.SetType("testType")
+	event.SetExtension("t", time.Now())
 	event.SetData(ce.ApplicationJSON, map[string]interface{}{
 		"number": s.number,
 		"string": fmt.Sprintf("str-%d", s.number),
 	})
-	return event
-}
-
-func (s *ExampleSource) Commit(event ce.Event) {
-	b, _ := json.Marshal(event)
-	fmt.Println("send event: " + string(b))
+	return &event
 }
 
 func main() {
-	configPath := flag.String("config", "./_examples/source/config.yaml", "the config file")
-	os.Setenv(connector.EnvConfigFile, *configPath)
+	os.Setenv(config.EnvConfigFile, "./_examples/source/config.yaml")
+	os.Setenv(config.EnvSecretFile, "./_examples/source/secret.yaml")
 	cdkgo.RunSource(&Config{}, &ExampleSource{})
 }

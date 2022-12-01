@@ -23,30 +23,32 @@ import (
 	"time"
 
 	ce "github.com/cloudevents/sdk-go/v2"
+	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
 	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
 )
 
-func RunSource(cfg connector.SourceConfigAccessor, source connector.Source) {
+func RunSource(cfg config.SourceConfigAccessor, source connector.Source) {
 	err := runConnector(cfg, source)
 	if err != nil {
 		log.Error("run source error", map[string]interface{}{
 			log.KeyError: err,
+			"name":       source.Name(),
 		})
 		os.Exit(-1)
 	}
 }
 
 type SourceWorker struct {
-	cfg      connector.SourceConfigAccessor
+	cfg      config.SourceConfigAccessor
 	source   connector.Source
 	ceClient ce.Client
 	wg       sync.WaitGroup
 }
 
-func newSourceWorker(cfg connector.SourceConfigAccessor, source connector.Source) Worker {
+func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) Worker {
 	return &SourceWorker{
 		cfg:    cfg,
 		source: source,
@@ -77,29 +79,36 @@ func (w *SourceWorker) execute(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case tuple := <-w.source.Chan():
+			err := w.sendEvent(ctx, tuple.Event)
+			if err == nil {
+				if tuple.Success != nil {
+					tuple.Success()
+				}
+			} else {
+				if tuple.Failed != nil {
+					tuple.Failed()
+				}
+			}
 		}
-		event := w.source.PollEvent()
-		w.sendEvent(ctx, event)
 	}
 }
 
-func (w *SourceWorker) sendEvent(ctx context.Context, event ce.Event) {
+func (w *SourceWorker) sendEvent(ctx context.Context, event *ce.Event) error {
 	var attempt int
 	for {
 		result := func() ce.Result {
 			ceCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 			defer cancel()
-			return w.ceClient.Send(ceCtx, event)
+			return w.ceClient.Send(ceCtx, *event)
 		}()
 		attempt++
 		if ce.IsACK(result) {
-			w.source.Commit(event)
 			log.Debug("send event success", map[string]interface{}{
 				"event":   event,
 				"attempt": attempt,
 			})
-			return
+			return nil
 		}
 		if errors.Is(result, context.Canceled) || !w.needAttempt(attempt) {
 			log.Error("send event fail", map[string]interface{}{
@@ -107,7 +116,7 @@ func (w *SourceWorker) sendEvent(ctx context.Context, event ce.Event) {
 				"attempt":    attempt,
 				"event":      event,
 			})
-			return
+			return result
 		}
 		log.Info("send event failed,will retry", map[string]interface{}{
 			log.KeyError: result,

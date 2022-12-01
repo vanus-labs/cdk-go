@@ -20,14 +20,15 @@ import (
 	"context"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
 	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
 )
 
-func runConnector(cfg connector.ConfigAccessor, c connector.Connector) error {
-	err := connector.ParseConfig(cfg)
+func runConnector(cfg config.ConfigAccessor, c connector.Connector) error {
+	err := config.ParseConfig(cfg)
 	if err != nil {
 		return errors.Wrap(err, "init config error")
 	}
@@ -73,12 +74,12 @@ type Worker interface {
 	Stop() error
 }
 
-func getWorker(cfg connector.ConfigAccessor, c connector.Connector) Worker {
+func getWorker(cfg config.ConfigAccessor, c connector.Connector) Worker {
 	switch cfg.ConnectorType() {
-	case connector.SourceConnector:
-		return newSourceWorker(cfg.(connector.SourceConfigAccessor), c.(connector.Source))
-	case connector.SinkConnector:
-		return newSinkWorker(cfg.(connector.SinkConfigAccessor), c.(connector.Sink))
+	case config.SourceConnector:
+		return newSourceWorker(cfg.(config.SourceConfigAccessor), c.(connector.Source))
+	case config.SinkConnector:
+		return newSinkWorker(cfg.(config.SinkConfigAccessor), c.(connector.Sink))
 	}
 	panic("unknown connector type:" + cfg.ConnectorType())
 }
