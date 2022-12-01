@@ -17,19 +17,27 @@ package runtime
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
+	"github.com/go-playground/validator/v10"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
 	"github.com/linkall-labs/cdk-go/util"
+	"github.com/pkg/errors"
 )
 
 func runConnector(cfg connector.ConfigAccessor, c connector.Connector) error {
 	err := connector.ParseConfig(cfg)
 	if err != nil {
-		return errors.Wrap(err, "init source config error")
+		return errors.Wrap(err, "init config error")
 	}
 	ctx := util.SignalContext()
+	err = validator.New().StructCtx(ctx, cfg)
+	if err != nil {
+		return errors.Wrap(err, "config tag validator has error")
+	}
+	err = cfg.Validate()
+	if err != nil {
+		return errors.Wrap(err, "config validate error")
+	}
 	err = c.Initialize(ctx, cfg)
 	if err != nil {
 		return errors.Wrap(err, "connector initialize failed")

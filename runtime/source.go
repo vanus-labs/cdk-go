@@ -20,11 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linkall-labs/cdk-go/util"
-
 	ce "github.com/cloudevents/sdk-go/v2"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
+	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
 )
 

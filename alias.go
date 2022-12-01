@@ -17,8 +17,13 @@ limitations under the License.
 package cdkgo
 
 import (
+	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/runtime"
 )
+
+type SourceConfig = connector.SourceConfig
+type ConfigAccessor = connector.ConfigAccessor
+type SinkConfig = connector.SinkConfig
 
 var (
 	RunSource = runtime.RunSource

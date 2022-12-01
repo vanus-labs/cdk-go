@@ -23,7 +23,7 @@ import (
 // Source is the interface a source connector expected to implement.
 type Source interface {
 	Connector
-	// PollEvent transform private data to CloudEvents.The method should block when no event exists.
+	// PollEvent transform relay data to CloudEvents.The method should block when no event exists.
 	PollEvent() ce.Event
 	// Commit send event success will call.
 	Commit(event ce.Event)

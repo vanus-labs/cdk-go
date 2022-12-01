@@ -28,8 +28,8 @@ import (
 )
 
 type Config struct {
-	connector.SourceConfig `json:",inline" yaml:",inline"`
-	Source                 string `json:"source" yaml:"source"`
+	cdkgo.SourceConfig `json:",inline" yaml:",inline"`
+	Source             string `json:"source" yaml:"source" validate:"required"`
 }
 
 type ExampleSource struct {

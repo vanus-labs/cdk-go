@@ -15,8 +15,11 @@
 package connector
 
 import (
+	"net/url"
 	"os"
 	"strconv"
+
+	"github.com/pkg/errors"
 
 	"github.com/linkall-labs/cdk-go/util"
 )
@@ -30,6 +33,7 @@ const (
 
 type ConfigAccessor interface {
 	ConnectorType() Type
+	Validate() error
 }
 
 type SourceConfigAccessor interface {
@@ -50,6 +54,18 @@ func (c *SourceConfig) ConnectorType() Type {
 	return SourceConnector
 }
 
+func (c *SourceConfig) Validate() error {
+	target := c.GetTarget()
+	if target == "" {
+		return errors.New("config target is empty")
+	}
+	_, err := url.Parse(target)
+	if err != nil {
+		return errors.Wrap(err, "target is invalid")
+	}
+
+	return nil
+}
 func (c *SourceConfig) GetAttempts() int {
 	if c.SendEventAttempts == nil {
 		return defaultAttempts
@@ -74,6 +90,10 @@ type SinkConfigAccessor interface {
 
 type SinkConfig struct {
 	Port int `json:"v_port" yaml:"v_port"`
+}
+
+func (c *SinkConfig) Validate() error {
+	return nil
 }
 
 func (c *SinkConfig) ConnectorType() Type {

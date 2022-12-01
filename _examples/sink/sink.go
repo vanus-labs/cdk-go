@@ -27,15 +27,15 @@ import (
 )
 
 type Config struct {
-	connector.SinkConfig `json:",inline" yaml:",inline"`
-	Count                int `json:"count" yaml:"count"`
+	cdkgo.SinkConfig `json:",inline" yaml:",inline"`
+	Count            int `json:"count" yaml:"count"`
 }
 
 type ExampleSink struct {
 	number int
 }
 
-func (s *ExampleSink) Initialize(ctx context.Context, cfg connector.ConfigAccessor) error {
+func (s *ExampleSink) Initialize(ctx context.Context, cfg cdkgo.ConfigAccessor) error {
 	config := cfg.(*Config)
 	s.number = config.Count
 	return nil
@@ -49,8 +49,9 @@ func (s *ExampleSink) Destroy() error {
 	return nil
 }
 func (s *ExampleSink) EmitEvent(ctx context.Context, event ce.Event) ce.Result {
+	s.number++
 	b, _ := json.Marshal(event)
-	fmt.Println(string(b))
+	fmt.Println(s.number, string(b))
 	return nil
 }
 
