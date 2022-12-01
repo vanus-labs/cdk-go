@@ -14,20 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package connector
 
-import "github.com/linkall-labs/cdk-go/connector"
+import (
+	ce "github.com/cloudevents/sdk-go/v2"
+)
 
-func main() {
-	//The following codes run a HttpSource which retrieve http requests and
-	//transform requests into standard CloudEvents. It finally delivers those
-	//CloudEvents to the EventDisplaySink.
-	//To test this example, you can send Http requests to http://localhost:8080
+// Source is the interface a source connector expected to implement.
+type Source interface {
+	Connector
+	// Chan transform relay data to CloudEvents
+	Chan() <-chan *Tuple
+}
 
-	//The EventDisplaySink simply receives CloudEvents and prints them.
+type Tuple struct {
+	Event   *ce.Event
+	Success func()
+	Failed  func()
+}
 
-	go connector.RunSource("HttpSource", CreateSource)
-
-	connector.RunSink("EventDisplay", CreateSink)
-
+func NewTuple(event *ce.Event, success, failed func()) *Tuple {
+	return &Tuple{
+		Event:   event,
+		Success: success,
+		Failed:  failed,
+	}
 }

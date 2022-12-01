@@ -1,5 +1,5 @@
 # cdk-go for Vance Connectors
-[![LICENSE](https://img.shields.io/github/license/cloudevents/sdk-go.svg)](https://github.com/cloudevents/sdk-go/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](https://github.com/linkall-labs/cdk-go/blob/main/LICENSE)
 
 The Go Connector-Development Kit (CDK) aims to help you build a new Vance connector in minutes.
 

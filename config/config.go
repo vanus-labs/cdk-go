@@ -18,81 +18,79 @@ package config
 
 import (
 	"os"
-	"strings"
+	"reflect"
+
+	"github.com/pkg/errors"
+
+	"github.com/linkall-labs/cdk-go/util"
 )
+
+type Type string
 
 const (
-	VanceConfigPathDv string = "/vance/config/config.json"
-	VanceSink         string = "v_target"
-	VanceSinkDv       string = "http://localhost:8080"
-	VancePort         string = "v_port"
-	VancePortDv       string = "8080"
+	SinkConnector   Type = "sink"
+	SourceConnector Type = "source"
 )
 
-// ConfigAccessor provides an easy way to obtain configs
-type ConfigAccessor struct {
-	DefaultValues map[string]string
-	//Logger        logr.Logger
+type SecretAccessor interface {
 }
 
-var Accessor ConfigAccessor
-var userConfig map[string]string
+type ConfigAccessor interface {
+	ConnectorType() Type
+	Validate() error
+	// GetSecret SecretAccessor implement type must be pointer
+	GetSecret() SecretAccessor
+}
 
-func init() {
-	//log.SetLogger(zap.New())
-	Accessor = ConfigAccessor{
-		DefaultValues: map[string]string{
-			VanceSink: VanceSinkDv,
-			VancePort: VancePortDv,
-		},
-		//Logger: log.Log.WithName("ConfigAccessor"),
-	}
-	configPath := VanceConfigPathDv
-	userConfig = make(map[string]string)
-	content, err := os.ReadFile(configPath)
+const (
+	EnvTarget     = "CONNECTOR_TARGET"
+	EnvPort       = "CONNECTOR_PORT"
+	EnvConfigFile = "CONNECTOR_CONFIG"
+	EnvSecretFile = "CONNECTOR_SECRET"
 
+	defaultPort     = 8080
+	defaultAttempts = 3
+)
+
+func ParseConfig(cfg ConfigAccessor) error {
+	err := parseSecret(cfg.GetSecret())
 	if err != nil {
-		//Accessor.Logger.Info("read vance config failed")
-		content, err = os.ReadFile("./config.json")
-		if err != nil {
-			//Accessor.Logger.Info("read local config failed")
-		}
+		return err
 	}
-	if len(content) != 0 {
-		//conf := gjson.ParseBytes(content).Map()
-		//Accessor.Logger.Info("conf length", "len", len(conf))
-		//
-		//for k, v := range conf {
-		//	userConfig[k] = v.Str
-		//}
+	err = parseConfig(cfg)
+	if err != nil {
+		return err
 	}
+	return nil
 }
 
-// Get method retrieves by following steps:
-// 1. Try to get an environment value by the key
-// 2. Try to get the value from a user-specific json config file.
-// Use config.Accessor.Get(key) to get any config value the user pass to the program
-func (a *ConfigAccessor) Get(key string) string {
-	var ret string
-	ret, existed := os.LookupEnv(strings.ToUpper(key))
-	if !existed {
-		//a.Logger.Info("userConfig length", "len", len(userConfig))
-		ret = userConfig[key]
+func parseConfig(cfg ConfigAccessor) error {
+	file := os.Getenv(EnvConfigFile)
+	if file == "" {
+		file = "config.yaml"
 	}
-	return ret
+	err := util.ParseConfig(file, cfg)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (a *ConfigAccessor) getOrDefault(key string) string {
-	ret := a.Get(key)
-	if ret == "" {
-		ret = a.DefaultValues[key]
+func parseSecret(secret SecretAccessor) error {
+	if secret == nil {
+		return nil
 	}
-	return ret
-}
-
-func (a *ConfigAccessor) VanceSink() string {
-	return a.getOrDefault(VanceSink)
-}
-func (a *ConfigAccessor) VancePort() string {
-	return a.getOrDefault(VancePort)
+	v := reflect.ValueOf(secret)
+	if v.Kind() != reflect.Ptr {
+		return errors.New("secret type must be pointer")
+	}
+	file := os.Getenv(EnvSecretFile)
+	if file == "" {
+		file = "secret.yaml"
+	}
+	err := util.ParseConfig(file, secret)
+	if err != nil {
+		return err
+	}
+	return nil
 }

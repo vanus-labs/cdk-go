@@ -14,22 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cdkutil
+package util
 
 import (
-	"encoding/json"
-	"gopkg.in/yaml.v2"
-	"os"
-	"strings"
+	"math"
+	"time"
 )
 
-func ParseConfig(file string, v interface{}) error {
-	data, err := os.ReadFile(file)
-
-	if strings.HasSuffix(file, "json") {
-		err = json.Unmarshal(data, v)
-	} else {
-		err = yaml.Unmarshal(data, v)
+func Backoff(attempt int, max time.Duration) time.Duration {
+	if attempt == 0 {
+		return 0
 	}
-	return err
+	backoff := float64(100*time.Millisecond) * math.Pow(2, float64(attempt))
+	d := time.Duration(backoff)
+	if d > max {
+		d = max
+	}
+	return d
 }

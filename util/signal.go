@@ -14,37 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package connector
+package util
 
 import (
 	"context"
-
-	ce "github.com/cloudevents/sdk-go/v2"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-type Sink interface {
-	Connector
-	// Arrived event arrived
-	Arrived(ctx context.Context, event ...*ce.Event) Result
-}
+var onlyOneSignalHandler = make(chan struct{})
+var shutdownHandler chan os.Signal
+var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
 
-type Code int
-type Result struct {
-	c   Code
-	msg string
-}
+func SignalContext() context.Context {
+	close(onlyOneSignalHandler) // panics when called twice
 
-func NewResult(c Code, msg string) Result {
-	return Result{c: c, msg: msg}
-}
+	shutdownHandler = make(chan os.Signal, 2)
 
-func (r Result) ConvertToCeResult() ce.Result {
-	if r == Success {
-		return nil
-	}
-	return ce.NewHTTPResult(int(r.c), r.msg)
-}
+	ctx, cancel := context.WithCancel(context.Background())
+	signal.Notify(shutdownHandler, shutdownSignals...)
+	go func() {
+		<-shutdownHandler
+		cancel()
+		<-shutdownHandler
+		os.Exit(1) // second signal. Exit directly.
+	}()
 
-var (
-	Success = NewResult(0, "success")
-)
+	return ctx
+}
