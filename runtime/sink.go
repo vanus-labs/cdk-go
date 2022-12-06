@@ -30,7 +30,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func RunSink(cfg config.SinkConfigAccessor, sink connector.Sink) {
+type SinkConfigConstructor func() config.SinkConfigAccessor
+type SinkConstructor func() connector.Sink
+
+func RunSink(cfgCtor SinkConfigConstructor, sinkCtor SinkConstructor) {
+	cfg := cfgCtor()
+	sink := sinkCtor()
 	err := runConnector(cfg, sink)
 	if err != nil {
 		log.Error("run sink error", map[string]interface{}{

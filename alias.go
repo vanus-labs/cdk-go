@@ -23,13 +23,17 @@ import (
 )
 
 type ConfigAccessor = config.ConfigAccessor
+type SourceConfigAccessor = config.SourceConfigAccessor
+type SinkConfigAccessor = config.SinkConfigAccessor
 type SecretAccessor = config.SecretAccessor
 
 type SourceConfig = config.SourceConfig
 type Tuple = connector.Tuple
+type Source = connector.Source
 
 type SinkConfig = config.SinkConfig
 type Result = connector.Result
+type Sink = connector.Sink
 
 var (
 	NewTuple  = connector.NewTuple

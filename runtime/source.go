@@ -30,7 +30,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func RunSource(cfg config.SourceConfigAccessor, source connector.Source) {
+type SourceConfigConstructor func() config.SourceConfigAccessor
+type SourceConstructor func() connector.Source
+
+func RunSource(cfgCtor SourceConfigConstructor, sourceCtor SourceConstructor) {
+	cfg := cfgCtor()
+	source := sourceCtor()
 	err := runConnector(cfg, source)
 	if err != nil {
 		log.Error("run source error", map[string]interface{}{

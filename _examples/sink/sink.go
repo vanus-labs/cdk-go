@@ -27,30 +27,40 @@ import (
 	"github.com/linkall-labs/cdk-go/config"
 )
 
-type Config struct {
+type exampleConfig struct {
 	cdkgo.SinkConfig `json:",inline" yaml:",inline"`
 	Count            int `json:"count" yaml:"count"`
 }
 
-type ExampleSink struct {
+func ExampleConfig() cdkgo.SinkConfigAccessor {
+	return &exampleConfig{}
+}
+
+var _ cdkgo.Sink = &exampleSink{}
+
+type exampleSink struct {
 	number int
 }
 
-func (s *ExampleSink) Initialize(ctx context.Context, cfg cdkgo.ConfigAccessor) error {
-	config := cfg.(*Config)
+func ExampleSink() cdkgo.Sink {
+	return &exampleSink{}
+}
+
+func (s *exampleSink) Initialize(ctx context.Context, cfg cdkgo.ConfigAccessor) error {
+	config := cfg.(*exampleConfig)
 	s.number = config.Count
 	return nil
 }
 
-func (s *ExampleSink) Name() string {
+func (s *exampleSink) Name() string {
 	return "ExampleSink"
 }
 
-func (s *ExampleSink) Destroy() error {
+func (s *exampleSink) Destroy() error {
 	return nil
 }
 
-func (s *ExampleSink) Arrived(ctx context.Context, events ...*ce.Event) cdkgo.Result {
+func (s *exampleSink) Arrived(ctx context.Context, events ...*ce.Event) cdkgo.Result {
 	for _, event := range events {
 		s.number++
 		b, _ := json.Marshal(event)
@@ -61,5 +71,5 @@ func (s *ExampleSink) Arrived(ctx context.Context, events ...*ce.Event) cdkgo.Re
 
 func main() {
 	os.Setenv(config.EnvConfigFile, "./_examples/sink/config.yaml")
-	cdkgo.RunSink(&Config{}, &ExampleSink{})
+	cdkgo.RunSink(ExampleConfig, ExampleSink)
 }
