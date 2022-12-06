@@ -29,13 +29,17 @@ import (
 	"github.com/linkall-labs/cdk-go/config"
 )
 
-type Config struct {
+type exampleConfig struct {
 	cdkgo.SourceConfig `json:",inline" yaml:",inline"`
 	Source             string `json:"source" yaml:"source" validate:"required"`
 	Secret             Secret
 }
 
-func (c *Config) GetSecret() cdkgo.SecretAccessor {
+func ExampleConfig() cdkgo.SourceConfigAccessor {
+	return &exampleConfig{}
+}
+
+func (c *exampleConfig) GetSecret() cdkgo.SecretAccessor {
 	return &c.Secret
 }
 
@@ -45,17 +49,24 @@ type Secret struct {
 	Password string `json:"password" yaml:"password" validate:"required"`
 }
 
-type ExampleSource struct {
+var _ cdkgo.Source = &exampleSource{}
+
+type exampleSource struct {
 	number int
 	source string
 	events chan *cdkgo.Tuple
 }
 
-func (s *ExampleSource) Initialize(ctx context.Context, cfg cdkgo.ConfigAccessor) error {
-	config := cfg.(*Config)
+func ExampleSource() cdkgo.Source {
+	return &exampleSource{
+		events: make(chan *cdkgo.Tuple, 100),
+	}
+}
+
+func (s *exampleSource) Initialize(ctx context.Context, cfg cdkgo.ConfigAccessor) error {
+	config := cfg.(*exampleConfig)
 	s.source = config.Source
 	fmt.Println(config.Secret)
-	s.events = make(chan *cdkgo.Tuple, 100)
 	go func() {
 		for {
 			event := s.makeEvent()
@@ -72,20 +83,20 @@ func (s *ExampleSource) Initialize(ctx context.Context, cfg cdkgo.ConfigAccessor
 	return nil
 }
 
-func (s *ExampleSource) Name() string {
+func (s *exampleSource) Name() string {
 	return "ExampleSource"
 }
 
-func (s *ExampleSource) Destroy() error {
+func (s *exampleSource) Destroy() error {
 	fmt.Println(fmt.Sprintf("send event number:%d", s.number))
 	return nil
 }
 
-func (s *ExampleSource) Chan() <-chan *cdkgo.Tuple {
+func (s *exampleSource) Chan() <-chan *cdkgo.Tuple {
 	return s.events
 }
 
-func (s *ExampleSource) makeEvent() *ce.Event {
+func (s *exampleSource) makeEvent() *ce.Event {
 	rand.Seed(time.Now().UnixMilli())
 	time.Sleep(time.Millisecond * time.Duration(rand.Intn(2000)+100))
 	s.number++
@@ -104,5 +115,5 @@ func (s *ExampleSource) makeEvent() *ce.Event {
 func main() {
 	os.Setenv(config.EnvConfigFile, "./_examples/source/config.yaml")
 	os.Setenv(config.EnvSecretFile, "./_examples/source/secret.yaml")
-	cdkgo.RunSource(&Config{}, &ExampleSource{})
+	cdkgo.RunSource(ExampleConfig, ExampleSource)
 }
