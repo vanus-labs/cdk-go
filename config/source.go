@@ -33,7 +33,7 @@ type SourceConfigAccessor interface {
 var _ SourceConfigAccessor = &SourceConfig{}
 
 type SourceConfig struct {
-	Target            string `json:"v_target" yaml:"v_target"`
+	Target            string `json:"target" yaml:"target"`
 	SendEventAttempts *int   `json:"send_event_attempts" yaml:"send_event_attempts"`
 }
 

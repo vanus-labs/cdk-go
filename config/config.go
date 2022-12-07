@@ -17,12 +17,12 @@ limitations under the License.
 package config
 
 import (
+	"github.com/linkall-labs/cdk-go/log"
 	"os"
 	"reflect"
 
-	"github.com/pkg/errors"
-
 	"github.com/linkall-labs/cdk-go/util"
+	"github.com/pkg/errors"
 )
 
 type Type string
@@ -53,23 +53,24 @@ const (
 )
 
 func ParseConfig(cfg ConfigAccessor) error {
-	err := parseSecret(cfg.GetSecret())
+	err := parseConfig(cfg)
 	if err != nil {
 		return err
 	}
-	err = parseConfig(cfg)
+
+	err = parseSecret(cfg.GetSecret())
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			log.Info("ignored: no secret.yml", nil)
+		} else {
+			return err
+		}
 	}
 	return nil
 }
 
 func parseConfig(cfg ConfigAccessor) error {
-	file := os.Getenv(EnvConfigFile)
-	if file == "" {
-		file = "config.yaml"
-	}
-	err := util.ParseConfig(file, cfg)
+	err := util.ParseConfig(getConfigFilePath(), cfg)
 	if err != nil {
 		return err
 	}
@@ -84,13 +85,18 @@ func parseSecret(secret SecretAccessor) error {
 	if v.Kind() != reflect.Ptr {
 		return errors.New("secret type must be pointer")
 	}
-	file := os.Getenv(EnvSecretFile)
-	if file == "" {
-		file = "secret.yaml"
-	}
-	err := util.ParseConfig(file, secret)
+
+	err := util.ParseConfig(os.Getenv(EnvSecretFile), secret)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func getConfigFilePath() string {
+	file := os.Getenv(EnvConfigFile)
+	if file == "" {
+		file = "config.yml"
+	}
+	return file
 }
