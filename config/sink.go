@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -30,7 +31,7 @@ type SinkConfigAccessor interface {
 }
 
 type SinkConfig struct {
-	Port int `json:"v_port" yaml:"v_port"`
+	Port int `json:"port" yaml:"port"`
 }
 
 func (c *SinkConfig) GetSecret() SecretAccessor {
@@ -51,10 +52,11 @@ func (c *SinkConfig) GetPort() int {
 	}
 	portStr := os.Getenv(EnvPort)
 	if portStr != "" {
-		p, err := strconv.ParseInt(EnvPort, 10, 16)
-		if err == nil {
-			return int(p)
+		p, err := strconv.ParseInt(portStr, 10, 16)
+		if err != nil {
+			panic(fmt.Sprintf("parse CONNECTOR_PORT error: %s", err.Error()))
 		}
+		return int(p)
 	}
 	return defaultPort
 }

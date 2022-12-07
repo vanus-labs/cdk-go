@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"github.com/linkall-labs/cdk-go/log"
 	"os"
 	"reflect"
 
@@ -65,11 +66,7 @@ func ParseConfig(cfg ConfigAccessor) error {
 }
 
 func parseConfig(cfg ConfigAccessor) error {
-	file := os.Getenv(EnvConfigFile)
-	if file == "" {
-		file = "config.yaml"
-	}
-	err := util.ParseConfig(file, cfg)
+	err := util.ParseConfig(getConfigFilePath(), cfg)
 	if err != nil {
 		return err
 	}
@@ -84,13 +81,34 @@ func parseSecret(secret SecretAccessor) error {
 	if v.Kind() != reflect.Ptr {
 		return errors.New("secret type must be pointer")
 	}
-	file := os.Getenv(EnvSecretFile)
-	if file == "" {
-		file = "secret.yaml"
-	}
-	err := util.ParseConfig(file, secret)
+
+	err := util.ParseConfig(getSecretFilePath(), secret)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func getConfigFilePath() string {
+	file := os.Getenv(EnvConfigFile)
+	if file == "" {
+		file = "config.yml"
+	}
+	return file
+}
+
+func getSecretFilePath() string {
+	file := os.Getenv(EnvSecretFile)
+	if file == "" {
+		file = "secret.yml"
+	}
+	f, e := os.Open(file)
+	defer func() {
+		_ = f.Close()
+	}()
+	if e != nil && os.IsNotExist(e) {
+		log.Warning("secret file not found, try to use config file", nil)
+		return getConfigFilePath()
+	}
+	return file
 }
