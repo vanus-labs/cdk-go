@@ -17,13 +17,12 @@ limitations under the License.
 package config
 
 import (
-	"github.com/linkall-labs/cdk-go/log"
 	"os"
 	"reflect"
 
-	"github.com/pkg/errors"
-
+	"github.com/linkall-labs/cdk-go/log"
 	"github.com/linkall-labs/cdk-go/util"
+	"github.com/pkg/errors"
 )
 
 type Type string
