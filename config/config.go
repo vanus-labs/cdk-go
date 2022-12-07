@@ -17,10 +17,10 @@ limitations under the License.
 package config
 
 import (
+	"github.com/linkall-labs/cdk-go/log"
 	"os"
 	"reflect"
 
-	"github.com/linkall-labs/cdk-go/log"
 	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
 )
@@ -53,13 +53,18 @@ const (
 )
 
 func ParseConfig(cfg ConfigAccessor) error {
-	err := parseSecret(cfg.GetSecret())
+	err := parseConfig(cfg)
 	if err != nil {
 		return err
 	}
-	err = parseConfig(cfg)
+
+	err = parseSecret(cfg.GetSecret())
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			log.Info("ignored: no secret.yml", nil)
+		} else {
+			return err
+		}
 	}
 	return nil
 }
@@ -81,7 +86,7 @@ func parseSecret(secret SecretAccessor) error {
 		return errors.New("secret type must be pointer")
 	}
 
-	err := util.ParseConfig(getSecretFilePath(), secret)
+	err := util.ParseConfig(os.Getenv(EnvSecretFile), secret)
 	if err != nil {
 		return err
 	}
@@ -92,22 +97,6 @@ func getConfigFilePath() string {
 	file := os.Getenv(EnvConfigFile)
 	if file == "" {
 		file = "config.yml"
-	}
-	return file
-}
-
-func getSecretFilePath() string {
-	file := os.Getenv(EnvSecretFile)
-	if file == "" {
-		file = "secret.yml"
-	}
-	f, e := os.Open(file)
-	defer func() {
-		_ = f.Close()
-	}()
-	if e != nil && os.IsNotExist(e) {
-		log.Warning("secret file not found, try to use config file", nil)
-		return getConfigFilePath()
 	}
 	return file
 }
