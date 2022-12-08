@@ -20,6 +20,7 @@ import (
 	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/runtime"
+	"github.com/linkall-labs/cdk-go/store"
 )
 
 type ConfigAccessor = config.ConfigAccessor
@@ -35,6 +36,8 @@ type SinkConfig = config.SinkConfig
 type Result = connector.Result
 type Sink = connector.Sink
 
+type KVStore = store.KVStore
+
 var (
 	NewTuple  = connector.NewTuple
 	RunSource = runtime.RunSource
@@ -42,4 +45,6 @@ var (
 	SuccessResult = connector.Success
 	NewResult     = connector.NewResult
 	RunSink       = runtime.RunSink
+
+	GetKVStore = store.GetKVStore
 )

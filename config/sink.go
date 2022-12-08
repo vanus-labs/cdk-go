@@ -31,7 +31,8 @@ type SinkConfigAccessor interface {
 }
 
 type SinkConfig struct {
-	Port int `json:"port" yaml:"port"`
+	Config `json:",inline" yaml:",inline"`
+	Port   int `json:"port" yaml:"port"`
 }
 
 func (c *SinkConfig) GetSecret() SecretAccessor {
@@ -39,7 +40,7 @@ func (c *SinkConfig) GetSecret() SecretAccessor {
 }
 
 func (c *SinkConfig) Validate() error {
-	return nil
+	return c.Config.Validate()
 }
 
 func (c *SinkConfig) ConnectorType() Type {
