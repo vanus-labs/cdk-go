@@ -16,10 +16,14 @@ limitations under the License.
 
 package store
 
-import "context"
+import (
+	"context"
+	"sync"
+)
 
 type memoryStore struct {
 	data map[string][]byte
+	lock sync.RWMutex
 }
 
 func NewMemoryStore() KVStore {
@@ -29,6 +33,8 @@ func NewMemoryStore() KVStore {
 }
 
 func (s *memoryStore) Set(ctx context.Context, key string, value []byte) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.data[key] = value
 	if err := s.Save(ctx); err != nil {
 		return err
@@ -37,6 +43,8 @@ func (s *memoryStore) Set(ctx context.Context, key string, value []byte) error {
 }
 
 func (s *memoryStore) Get(_ context.Context, key string) ([]byte, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	value, ok := s.data[key]
 	if !ok {
 		return nil, ErrKeyNotExist
@@ -45,6 +53,8 @@ func (s *memoryStore) Get(_ context.Context, key string) ([]byte, error) {
 }
 
 func (s *memoryStore) Delete(ctx context.Context, key string) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	_, ok := s.data[key]
 	if !ok {
 		return nil
