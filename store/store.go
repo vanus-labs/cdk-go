@@ -37,7 +37,7 @@ type KVStore interface {
 var kvStore KVStore
 
 func InitKvStore(cfg config.StoreConfig) (err error) {
-	switch cfg.StoreType {
+	switch cfg.Type {
 	case config.FileStore:
 		kvStore, err = NewFileStore(cfg.StoreFile)
 		if err != nil {

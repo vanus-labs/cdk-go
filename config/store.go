@@ -27,19 +27,19 @@ const (
 )
 
 type StoreConfig struct {
-	StoreType StoreType `json:"v_store_type" yaml:"v_store_type"`
+	Type StoreType `json:"type" yaml:"type"`
 	// file store
-	StoreFile string `json:"v_store_file" yaml:"v_store_file"`
+	StoreFile string `json:"store_file" yaml:"store_file"`
 	// etcd store
-	Endpoints []string `json:"v_store_endpoints" yaml:"v_store_endpoints"`
-	KeyPrefix string   `json:"v_store_key_prefix" yaml:"v_store_key_prefix"`
+	Endpoints []string `json:"endpoints" yaml:"endpoints"`
+	KeyPrefix string   `json:"key_prefix" yaml:"key_prefix"`
 }
 
 func (c *StoreConfig) Validate() error {
 	if c == nil {
 		return nil
 	}
-	switch c.StoreType {
+	switch c.Type {
 	case FileStore:
 		if c.StoreFile == "" {
 			return errors.New("config storeType is file, but config storeFile is empty")

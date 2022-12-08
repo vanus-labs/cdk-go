@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	"github.com/linkall-labs/cdk-go/log"
-
 	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
 )
@@ -48,7 +47,7 @@ type ConfigAccessor interface {
 
 type Config struct {
 	StoreConfig StoreConfig `json:"store_config" yaml:"store-config"`
-	LogConfig   LogConfig   `json:"log_level" yaml:"log_level"`
+	LogConfig   LogConfig   `json:"log_config" yaml:"log_config"`
 }
 
 func (c *Config) Validate() error {
