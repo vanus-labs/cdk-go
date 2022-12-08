@@ -123,7 +123,7 @@ func (w *SourceWorker) sendEvent(ctx context.Context, event *ce.Event) error {
 			})
 			return result
 		}
-		log.Info("send event failed,will retry", map[string]interface{}{
+		log.Warning("send event failed, will retry", map[string]interface{}{
 			log.KeyError: result,
 			"attempt":    attempt,
 			"event":      event,

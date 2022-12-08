@@ -15,7 +15,6 @@ package log
 
 import (
 	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -34,31 +33,25 @@ type Logger interface {
 }
 
 func init() {
-	logger := logrus.New()
-	logger.Formatter = &logrus.TextFormatter{TimestampFormat: time.RFC3339Nano, FullTimestamp: true}
-	r := &defaultLogger{
-		logger: logger,
-	}
-	level := os.Getenv("LOG_LEVEL")
-	if level == "" {
-		level = "INFO"
-	}
-	r.SetLevel(level)
+	r := newDefaultLog()
 	vLog = r
-	vLog.Info("logger level is set", map[string]interface{}{
-		"log_level": level,
-	})
 }
 
 var vLog Logger
 
 func NewLogger() Logger {
-	l := &defaultLogger{
-		logger: logrus.New(),
-	}
-	level := os.Getenv("LOG_LEVEL")
-	l.SetLevel(level)
+	l := newDefaultLog()
+	l.logger.SetLevel(vLog.(*defaultLogger).logger.Level)
 	return l
+}
+
+func newDefaultLog() *defaultLogger {
+	logger := logrus.New()
+	logger.Formatter = &logrus.TextFormatter{TimestampFormat: time.RFC3339Nano, FullTimestamp: true}
+	r := &defaultLogger{
+		logger: logger,
+	}
+	return r
 }
 
 type defaultLogger struct {
@@ -133,6 +126,9 @@ func SetLogLevel(level string) {
 	if level == "" {
 		return
 	}
+	vLog.Info("logger level is set", map[string]interface{}{
+		"log_level": level,
+	})
 	vLog.SetLevel(level)
 }
 

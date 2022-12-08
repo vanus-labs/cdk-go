@@ -33,12 +33,9 @@ type SourceConfigAccessor interface {
 var _ SourceConfigAccessor = &SourceConfig{}
 
 type SourceConfig struct {
+	Config            `json:",inline" yaml:",inline"`
 	Target            string `json:"target" yaml:"target"`
 	SendEventAttempts *int   `json:"send_event_attempts" yaml:"send_event_attempts"`
-}
-
-func (c *SourceConfig) GetSecret() SecretAccessor {
-	return nil
 }
 
 func (c *SourceConfig) ConnectorType() Type {
@@ -55,7 +52,7 @@ func (c *SourceConfig) Validate() error {
 		return errors.Wrap(err, "target is invalid")
 	}
 
-	return nil
+	return c.Config.Validate()
 }
 func (c *SourceConfig) GetAttempts() int {
 	if c.SendEventAttempts == nil {

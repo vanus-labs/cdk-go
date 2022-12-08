@@ -17,10 +17,10 @@ limitations under the License.
 package config
 
 import (
-	"github.com/linkall-labs/cdk-go/log"
 	"os"
 	"reflect"
 
+	"github.com/linkall-labs/cdk-go/log"
 	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
 )
@@ -40,9 +40,34 @@ type ConfigAccessor interface {
 	Validate() error
 	// GetSecret SecretAccessor implement type must be pointer
 	GetSecret() SecretAccessor
+
+	GetLogConfig() LogConfig
+	GetStoreConfig() StoreConfig
+}
+
+type Config struct {
+	StoreConfig StoreConfig `json:"store_config" yaml:"store_config"`
+	LogConfig   LogConfig   `json:"log_config" yaml:"log_config"`
+}
+
+func (c *Config) Validate() error {
+	return c.StoreConfig.Validate()
+}
+
+func (c *Config) GetStoreConfig() StoreConfig {
+	return c.StoreConfig
+}
+
+func (c *Config) GetLogConfig() LogConfig {
+	return c.LogConfig
+}
+
+func (c *Config) GetSecret() SecretAccessor {
+	return nil
 }
 
 const (
+	EnvLogLevel   = "LOG_LEVEL"
 	EnvTarget     = "CONNECTOR_TARGET"
 	EnvPort       = "CONNECTOR_PORT"
 	EnvConfigFile = "CONNECTOR_CONFIG"
@@ -86,7 +111,7 @@ func parseSecret(secret SecretAccessor) error {
 		return errors.New("secret type must be pointer")
 	}
 
-	err := util.ParseConfig(os.Getenv(EnvSecretFile), secret)
+	err := util.ParseConfig(getSecretFilePath(), secret)
 	if err != nil {
 		return err
 	}
@@ -97,6 +122,14 @@ func getConfigFilePath() string {
 	file := os.Getenv(EnvConfigFile)
 	if file == "" {
 		file = "config.yml"
+	}
+	return file
+}
+
+func getSecretFilePath() string {
+	file := os.Getenv(EnvSecretFile)
+	if file == "" {
+		file = "secret.yml"
 	}
 	return file
 }

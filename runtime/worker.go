@@ -23,6 +23,7 @@ import (
 	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
+	"github.com/linkall-labs/cdk-go/store"
 	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
 )
@@ -32,6 +33,7 @@ func runConnector(cfg config.ConfigAccessor, c connector.Connector) error {
 	if err != nil {
 		return errors.Wrap(err, "init config error")
 	}
+	log.SetLogLevel(cfg.GetLogConfig().GetLogLevel())
 	ctx := util.SignalContext()
 	err = validator.New().StructCtx(ctx, cfg)
 	if err != nil {
@@ -40,6 +42,10 @@ func runConnector(cfg config.ConfigAccessor, c connector.Connector) error {
 	err = cfg.Validate()
 	if err != nil {
 		return errors.Wrap(err, "config validate error")
+	}
+	err = store.InitKvStore(cfg.GetStoreConfig())
+	if err != nil {
+		return errors.Wrap(err, "init kv store error")
 	}
 	err = c.Initialize(ctx, cfg)
 	if err != nil {

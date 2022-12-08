@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	ce "github.com/cloudevents/sdk-go/v2"
@@ -41,6 +42,13 @@ func ExampleConfig() cdkgo.SourceConfigAccessor {
 
 func (c *exampleConfig) GetSecret() cdkgo.SecretAccessor {
 	return &c.Secret
+}
+
+func (c *exampleConfig) Validate() error {
+	if !strings.HasPrefix(c.Source, "example") {
+		return fmt.Errorf("source is invlaid")
+	}
+	return c.SourceConfig.Validate()
 }
 
 type Secret struct {
