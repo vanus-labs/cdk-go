@@ -92,7 +92,7 @@ func (w *SourceWorker) execute(ctx context.Context) {
 				}
 			} else {
 				if tuple.Failed != nil {
-					tuple.Failed()
+					tuple.Failed(err)
 				}
 			}
 		}

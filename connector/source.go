@@ -30,10 +30,10 @@ type Source interface {
 type Tuple struct {
 	Event   *ce.Event
 	Success func()
-	Failed  func()
+	Failed  func(err error)
 }
 
-func NewTuple(event *ce.Event, success, failed func()) *Tuple {
+func NewTuple(event *ce.Event, success func(), failed func(error)) *Tuple {
 	return &Tuple{
 		Event:   event,
 		Success: success,
