@@ -82,8 +82,8 @@ func (s *exampleSource) Initialize(ctx context.Context, cfg cdkgo.ConfigAccessor
 			success := func() {
 				fmt.Println("send event success: " + string(b))
 			}
-			failed := func() {
-				fmt.Println("send event failed: " + string(b))
+			failed := func(err error) {
+				fmt.Println("send event failed: " + string(b) + ", error: " + err.Error())
 			}
 			s.events <- cdkgo.NewTuple(event, success, failed)
 		}
