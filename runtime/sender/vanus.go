@@ -58,9 +58,14 @@ func (v *vanusSender) SendEvent(ctx context.Context, events ...*ce.Event) error 
 		return nil
 	}
 
+	es := make([]*cloudevents.CloudEvent, len(events))
+	for idx := range events {
+		es[idx], _ = ToProto(events[idx])
+	}
+
 	_, err := v.client.Send(ctx, &cloudevents.BatchEvent{
 		EventbusName: v.eventbus,
-		Events:       nil,
+		Events:       &cloudevents.CloudEventBatch{Events: es},
 	})
 	return err
 }
