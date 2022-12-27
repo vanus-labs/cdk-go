@@ -14,46 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package connector
+package sender
 
 import (
 	"context"
-	"fmt"
-
 	ce "github.com/cloudevents/sdk-go/v2"
 )
 
-type Sink interface {
-	Connector
-	// Arrived event arrived
-	Arrived(ctx context.Context, event ...*ce.Event) Result
+type CloudEventSender interface {
+	SendEvent(ctx context.Context, events ...*ce.Event) error
 }
-
-type Code int
-type Result struct {
-	c   Code
-	msg string
-}
-
-func NewResult(c Code, msg string) Result {
-	return Result{c: c, msg: msg}
-}
-
-func (r Result) ConvertToCeResult() ce.Result {
-	if r == Success {
-		return nil
-	}
-	return ce.NewHTTPResult(int(r.c), r.msg)
-}
-
-func (r Result) GetCode() Code {
-	return r.GetCode()
-}
-
-func (r Result) Error() error {
-	return fmt.Errorf("{\"message\": \"%s\", \"code\": %d}", r.msg, r.c)
-}
-
-var (
-	Success = NewResult(0, "success")
-)

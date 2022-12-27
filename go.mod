@@ -6,11 +6,13 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.12.0
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/golang/protobuf v1.5.2
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
 	go.etcd.io/etcd/client/v3 v3.5.6
+	google.golang.org/grpc v1.41.0
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v3 v3.0.1
-
 )
 
 require (
@@ -34,6 +36,4 @@ require (
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
-	google.golang.org/grpc v1.41.0 // indirect
-	google.golang.org/protobuf v1.26.0 // indirect
 )

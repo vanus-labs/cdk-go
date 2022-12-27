@@ -26,11 +26,13 @@ import (
 	"github.com/linkall-labs/cdk-go/config"
 	"github.com/linkall-labs/cdk-go/connector"
 	"github.com/linkall-labs/cdk-go/log"
+	"github.com/linkall-labs/cdk-go/runtime/sender"
 	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
 )
 
 type SourceConfigConstructor func() config.SourceConfigAccessor
+
 type SourceConstructor func() connector.Source
 
 func RunSource(cfgCtor SourceConfigConstructor, sourceCtor SourceConstructor) {
@@ -51,6 +53,9 @@ type SourceWorker struct {
 	source   connector.Source
 	ceClient ce.Client
 	wg       sync.WaitGroup
+	sd       sender.CloudEventSender
+	mutex    sync.RWMutex
+	current  []*connector.Tuple
 }
 
 func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) Worker {
@@ -61,20 +66,29 @@ func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) W
 }
 
 func (w *SourceWorker) Start(ctx context.Context) error {
-	target := w.cfg.GetTarget()
-	ceClient, err := ce.NewClientHTTP(ce.WithTarget(target))
-	if err != nil {
-		return errors.Wrap(err, "failed to init ce client")
+	if w.cfg.GetVanusConfig() != nil {
+		w.sd = sender.NewVanusSender(w.cfg.GetVanusConfig().Eventbus, w.cfg.GetVanusConfig().Eventbus)
+	} else {
+		w.sd = sender.NewHTTPSender(w.cfg.GetTarget())
 	}
-	w.ceClient = ceClient
+	if w.sd == nil {
+		return errors.New("failed to init cloudevents sender")
+	}
+
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
 		w.execute(ctx)
 	}()
+
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.send(ctx)
+	}()
+
 	log.Info("the connector started", map[string]interface{}{
 		log.ConnectorName: w.source.Name(),
-		"target":          target,
 	})
 	return nil
 }
@@ -85,50 +99,23 @@ func (w *SourceWorker) execute(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case tuple := <-w.source.Chan():
-			err := w.sendEvent(ctx, tuple.Event)
-			if err == nil {
-				if tuple.Success != nil {
-					tuple.Success()
-				}
-			} else {
-				if tuple.Failed != nil {
-					tuple.Failed(err)
-				}
-			}
+			w.mutex.RLock()
+			w.current = append(w.current, tuple)
+			w.mutex.RUnlock()
+			w.doSend(false)
 		}
 	}
 }
 
-func (w *SourceWorker) sendEvent(ctx context.Context, event *ce.Event) error {
-	var attempt int
+func (w *SourceWorker) send(ctx context.Context) {
+	t := time.NewTimer(200 * time.Microsecond)
 	for {
-		result := func() ce.Result {
-			ceCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-			defer cancel()
-			return w.ceClient.Send(ceCtx, *event)
-		}()
-		attempt++
-		if ce.IsACK(result) {
-			log.Debug("send event success", map[string]interface{}{
-				"event":   event,
-				"attempt": attempt,
-			})
-			return nil
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			w.doSend(true)
 		}
-		if errors.Is(result, context.Canceled) || !w.needAttempt(attempt) {
-			log.Error("send event fail", map[string]interface{}{
-				log.KeyError: result,
-				"attempt":    attempt,
-				"event":      event,
-			})
-			return result
-		}
-		log.Warning("send event failed, will retry", map[string]interface{}{
-			log.KeyError: result,
-			"attempt":    attempt,
-			"event":      event,
-		})
-		time.Sleep(util.Backoff(attempt, time.Second*5))
 	}
 }
 
@@ -142,4 +129,67 @@ func (w *SourceWorker) needAttempt(attempt int) bool {
 func (w *SourceWorker) Stop() error {
 	w.wg.Wait()
 	return w.source.Destroy()
+}
+
+func (w *SourceWorker) doSend(force bool) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	if len(w.current) < w.cfg.GetBatchSize() && !force {
+		return
+	}
+
+	events := make([]*ce.Event, len(w.current))
+	for idx := range w.current {
+		events[idx] = w.current[idx].Event
+	}
+
+	ctx := context.Background()
+	var attempt int
+	var err error
+	for {
+		err = func() ce.Result {
+			ceCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			return w.sd.SendEvent(ceCtx, events...)
+		}()
+		attempt++
+		// TODO(wenfeng) remove ce.IsACK?
+		if err == nil || ce.IsACK(err) {
+			log.Debug("send event success", map[string]interface{}{
+				"event":   events,
+				"attempt": attempt,
+			})
+			err = nil
+			break
+		}
+		if errors.Is(err, context.Canceled) || !w.needAttempt(attempt) {
+			log.Error("send event fail", map[string]interface{}{
+				log.KeyError: err,
+				"attempt":    attempt,
+				"event":      events,
+			})
+			break
+		}
+		log.Warning("send event failed, will retry", map[string]interface{}{
+			log.KeyError: err,
+			"attempt":    attempt,
+			"event":      events,
+		})
+		time.Sleep(util.Backoff(attempt, time.Second*5))
+	}
+
+	if err == nil {
+		for idx := range w.current {
+			if w.current[idx].Success != nil {
+				w.current[idx].Success()
+			}
+		}
+	} else {
+		for idx := range w.current {
+			if w.current[idx].Failed != nil {
+				w.current[idx].Failed(err)
+			}
+		}
+	}
+	w.current = nil
 }

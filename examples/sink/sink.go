@@ -70,6 +70,6 @@ func (s *exampleSink) Arrived(ctx context.Context, events ...*ce.Event) cdkgo.Re
 }
 
 func main() {
-	os.Setenv(config.EnvConfigFile, "./_examples/sink/config.yaml")
+	os.Setenv(config.EnvConfigFile, "./examples/sink/config.yaml")
 	cdkgo.RunSink(ExampleConfig, ExampleSink)
 }

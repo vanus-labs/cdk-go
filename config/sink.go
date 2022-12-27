@@ -28,11 +28,17 @@ type SinkConfigAccessor interface {
 	ConfigAccessor
 	// GetPort receive event server use port, default 8080
 	GetPort() int
+	GetGRPCPort() int
 }
 
 type SinkConfig struct {
-	Config `json:",inline" yaml:",inline"`
-	Port   int `json:"port" yaml:"port"`
+	Config   `json:",inline" yaml:",inline"`
+	Port     int `json:"port" yaml:"port"`
+	GRPCPort int `json:"grpc_port" yaml:"grpc_port"`
+}
+
+func (c *SinkConfig) GetGRPCPort() int {
+	return c.GRPCPort
 }
 
 func (c *SinkConfig) GetSecret() SecretAccessor {

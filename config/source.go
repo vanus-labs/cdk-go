@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"github.com/linkall-labs/cdk-go/log"
 	"net/url"
 	"os"
 
@@ -28,14 +29,31 @@ type SourceConfigAccessor interface {
 	GetTarget() string
 	// GetAttempts send event max attempts, 0 will retry util success, default is 3.
 	GetAttempts() int
+	GetVanusConfig() *VanusConfig
+	GetBatchSize() int
+}
+
+type VanusConfig struct {
+	Endpoint string `json:"endpoint" yaml:"endpoint" validate:"require"`
+	Eventbus string `json:"eventbus" yaml:"eventbus" validate:"require"`
 }
 
 var _ SourceConfigAccessor = &SourceConfig{}
 
 type SourceConfig struct {
 	Config            `json:",inline" yaml:",inline"`
-	Target            string `json:"target" yaml:"target"`
-	SendEventAttempts *int   `json:"send_event_attempts" yaml:"send_event_attempts"`
+	Target            string       `json:"target" yaml:"target"`
+	SendEventAttempts *int         `json:"send_event_attempts" yaml:"send_event_attempts"`
+	Vanus             *VanusConfig `json:"vanus" yaml:"vanus"`
+	BatchSize         int          `json:"batch_size" yaml:"batch_size"`
+}
+
+func (c *SourceConfig) GetVanusConfig() *VanusConfig {
+	return c.Vanus
+}
+
+func (c *SourceConfig) GetBatchSize() int {
+	return c.BatchSize
 }
 
 func (c *SourceConfig) ConnectorType() Type {
@@ -44,9 +62,35 @@ func (c *SourceConfig) ConnectorType() Type {
 
 func (c *SourceConfig) Validate() error {
 	target := c.GetTarget()
-	if target == "" {
-		return errors.New("config target is empty")
+	if target == "" && c.Vanus == nil {
+		return errors.New("config target and vanus can't be both empty")
 	}
+	// print configuration
+	log.Info("config", map[string]interface{}{
+		"target": c.Target,
+	})
+
+	if target != "" && c.Vanus != nil {
+		log.Info("vanus is configured, target was ignored", map[string]interface{}{
+			"endpoint": c.Vanus.Endpoint,
+			"eventbus": c.Vanus.Eventbus,
+		})
+	}
+	log.Info("config", map[string]interface{}{
+		"vanus": c.Vanus,
+	})
+
+	if c.BatchSize > 0 && c.GetVanusConfig() == nil {
+		log.Warning("config batch_size ignored, because default HTTP sender doesn't support batch mode", nil)
+	}
+	log.Info("config", map[string]interface{}{
+		"batch_size": c.BatchSize,
+	})
+
+	log.Info("config", map[string]interface{}{
+		"send_event_attempts": c.SendEventAttempts,
+	})
+
 	_, err := url.Parse(target)
 	if err != nil {
 		return errors.Wrap(err, "target is invalid")
