@@ -66,20 +66,29 @@ func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) W
 }
 
 func (w *SourceWorker) Start(ctx context.Context) error {
-	target := w.cfg.GetTarget()
-	ceClient, err := ce.NewClientHTTP(ce.WithTarget(target))
-	if err != nil {
-		return errors.Wrap(err, "failed to init ce client")
+	if w.cfg.GetVanusConfig() != nil {
+		w.sd = sender.NewVanusSender(w.cfg.GetVanusConfig().Eventbus, w.cfg.GetVanusConfig().Eventbus)
+	} else {
+		w.sd = sender.NewHTTPSender(w.cfg.GetTarget())
 	}
-	w.ceClient = ceClient
+	if w.sd == nil {
+		return errors.New("failed to init cloudevents sender")
+	}
+
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
 		w.execute(ctx)
 	}()
+
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.send(ctx)
+	}()
+
 	log.Info("the connector started", map[string]interface{}{
 		log.ConnectorName: w.source.Name(),
-		"target":          target,
 	})
 	return nil
 }

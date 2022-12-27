@@ -121,7 +121,7 @@ func (s *exampleSource) makeEvent() *ce.Event {
 }
 
 func main() {
-	os.Setenv(config.EnvConfigFile, "./_examples/source/config.yaml")
-	os.Setenv(config.EnvSecretFile, "./_examples/source/secret.yaml")
+	os.Setenv(config.EnvConfigFile, "./examples/source/config.yaml")
+	os.Setenv(config.EnvSecretFile, "./examples/source/secret.yaml")
 	cdkgo.RunSource(ExampleConfig, ExampleSource)
 }

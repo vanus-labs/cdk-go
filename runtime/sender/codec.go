@@ -8,13 +8,13 @@ package sender
 import (
 	// standard libraries
 	"fmt"
+	cloudevents "github.com/linkall-labs/cdk-go/proto"
 	"net/url"
 	stdtime "time"
 
 	// third-party libraries
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/cloudevents/sdk-go/v2/types"
-	cepb "github.com/linkall-labs/cdk-go/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -28,7 +28,7 @@ const (
 	datacontenttype = "datacontenttype"
 	dataschema      = "dataschema"
 	subject         = "subject"
-	time            = "time"
+	timeStr         = "time"
 )
 
 var (
@@ -36,13 +36,13 @@ var (
 )
 
 // ToProto convert an SDK event to a protobuf variant of the event that can be marshaled.
-func ToProto(e *event.Event) (*cepb.CloudEvent, error) {
-	container := &cepb.CloudEvent{
+func ToProto(e *event.Event) (*cloudevents.CloudEvent, error) {
+	container := &cloudevents.CloudEvent{
 		Id:          e.ID(),
 		Source:      e.Source(),
 		SpecVersion: e.SpecVersion(),
 		Type:        e.Type(),
-		Attributes:  make(map[string]*cepb.CloudEvent_CloudEventAttributeValue),
+		Attributes:  make(map[string]*cloudevents.CloudEvent_CloudEventAttributeValue),
 	}
 	if e.DataContentType() != "" {
 		container.Attributes[datacontenttype], _ = attributeFor(e.DataContentType())
@@ -54,7 +54,7 @@ func ToProto(e *event.Event) (*cepb.CloudEvent, error) {
 		container.Attributes[subject], _ = attributeFor(e.Subject())
 	}
 	if e.Time() != zeroTime {
-		container.Attributes[time], _ = attributeFor(e.Time())
+		container.Attributes[timeStr], _ = attributeFor(e.Time())
 	}
 	for name, value := range e.Extensions() {
 		attr, err := attributeFor(value)
@@ -63,7 +63,7 @@ func ToProto(e *event.Event) (*cepb.CloudEvent, error) {
 		}
 		container.Attributes[name] = attr
 	}
-	container.Data = &cepb.CloudEvent_BinaryData{
+	container.Data = &cloudevents.CloudEvent_BinaryData{
 		BinaryData: e.Data(),
 	}
 	if e.DataContentType() == ContentTypeProtobuf {
@@ -71,46 +71,46 @@ func ToProto(e *event.Event) (*cepb.CloudEvent, error) {
 			TypeUrl: e.DataSchema(),
 			Value:   e.Data(),
 		}
-		container.Data = &cepb.CloudEvent_ProtoData{
+		container.Data = &cloudevents.CloudEvent_ProtoData{
 			ProtoData: anymsg,
 		}
 	}
 	return container, nil
 }
 
-func attributeFor(v interface{}) (*cepb.CloudEvent_CloudEventAttributeValue, error) {
+func attributeFor(v interface{}) (*cloudevents.CloudEvent_CloudEventAttributeValue, error) {
 	vv, err := types.Validate(v)
 	if err != nil {
 		return nil, err
 	}
-	attr := &cepb.CloudEvent_CloudEventAttributeValue{}
+	attr := &cloudevents.CloudEvent_CloudEventAttributeValue{}
 	switch vt := vv.(type) {
 	case bool:
-		attr.Attr = &cepb.CloudEvent_CloudEventAttributeValue_CeBoolean{
+		attr.Attr = &cloudevents.CloudEvent_CloudEventAttributeValue_CeBoolean{
 			CeBoolean: vt,
 		}
 	case int32:
-		attr.Attr = &cepb.CloudEvent_CloudEventAttributeValue_CeInteger{
+		attr.Attr = &cloudevents.CloudEvent_CloudEventAttributeValue_CeInteger{
 			CeInteger: vt,
 		}
 	case string:
-		attr.Attr = &cepb.CloudEvent_CloudEventAttributeValue_CeString{
+		attr.Attr = &cloudevents.CloudEvent_CloudEventAttributeValue_CeString{
 			CeString: vt,
 		}
 	case []byte:
-		attr.Attr = &cepb.CloudEvent_CloudEventAttributeValue_CeBytes{
+		attr.Attr = &cloudevents.CloudEvent_CloudEventAttributeValue_CeBytes{
 			CeBytes: vt,
 		}
 	case types.URI:
-		attr.Attr = &cepb.CloudEvent_CloudEventAttributeValue_CeUri{
+		attr.Attr = &cloudevents.CloudEvent_CloudEventAttributeValue_CeUri{
 			CeUri: vt.String(),
 		}
 	case types.URIRef:
-		attr.Attr = &cepb.CloudEvent_CloudEventAttributeValue_CeUriRef{
+		attr.Attr = &cloudevents.CloudEvent_CloudEventAttributeValue_CeUriRef{
 			CeUriRef: vt.String(),
 		}
 	case types.Timestamp:
-		attr.Attr = &cepb.CloudEvent_CloudEventAttributeValue_CeTimestamp{
+		attr.Attr = &cloudevents.CloudEvent_CloudEventAttributeValue_CeTimestamp{
 			CeTimestamp: timestamppb.New(vt.Time),
 		}
 	default:
@@ -119,30 +119,30 @@ func attributeFor(v interface{}) (*cepb.CloudEvent_CloudEventAttributeValue, err
 	return attr, nil
 }
 
-func valueFrom(attr *cepb.CloudEvent_CloudEventAttributeValue) (interface{}, error) {
+func valueFrom(attr *cloudevents.CloudEvent_CloudEventAttributeValue) (interface{}, error) {
 	var v interface{}
 	switch vt := attr.Attr.(type) {
-	case *cepb.CloudEvent_CloudEventAttributeValue_CeBoolean:
+	case *cloudevents.CloudEvent_CloudEventAttributeValue_CeBoolean:
 		v = vt.CeBoolean
-	case *cepb.CloudEvent_CloudEventAttributeValue_CeInteger:
+	case *cloudevents.CloudEvent_CloudEventAttributeValue_CeInteger:
 		v = vt.CeInteger
-	case *cepb.CloudEvent_CloudEventAttributeValue_CeString:
+	case *cloudevents.CloudEvent_CloudEventAttributeValue_CeString:
 		v = vt.CeString
-	case *cepb.CloudEvent_CloudEventAttributeValue_CeBytes:
+	case *cloudevents.CloudEvent_CloudEventAttributeValue_CeBytes:
 		v = vt.CeBytes
-	case *cepb.CloudEvent_CloudEventAttributeValue_CeUri:
+	case *cloudevents.CloudEvent_CloudEventAttributeValue_CeUri:
 		uri, err := url.Parse(vt.CeUri)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse URI value %s: %s", vt.CeUri, err.Error())
 		}
 		v = uri
-	case *cepb.CloudEvent_CloudEventAttributeValue_CeUriRef:
+	case *cloudevents.CloudEvent_CloudEventAttributeValue_CeUriRef:
 		uri, err := url.Parse(vt.CeUriRef)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse URIRef value %s: %s", vt.CeUriRef, err.Error())
 		}
 		v = types.URIRef{URL: *uri}
-	case *cepb.CloudEvent_CloudEventAttributeValue_CeTimestamp:
+	case *cloudevents.CloudEvent_CloudEventAttributeValue_CeTimestamp:
 		v = vt.CeTimestamp.AsTime()
 	default:
 		return nil, fmt.Errorf("unsupported attribute type: %T", vt)
@@ -151,7 +151,7 @@ func valueFrom(attr *cepb.CloudEvent_CloudEventAttributeValue) (interface{}, err
 }
 
 // FromProto Convert from a protobuf variant into the generic, SDK event.
-func FromProto(container *cepb.CloudEvent) (*event.Event, error) {
+func FromProto(container *cloudevents.CloudEvent) (*event.Event, error) {
 	e := event.New()
 	e.SetID(container.Id)
 	e.SetSource(container.Source)
@@ -179,13 +179,13 @@ func FromProto(container *cepb.CloudEvent) (*event.Event, error) {
 	if container.Attributes != nil {
 		attr := container.Attributes[datacontenttype]
 		if attr != nil {
-			if stattr, ok := attr.Attr.(*cepb.CloudEvent_CloudEventAttributeValue_CeString); ok {
+			if stattr, ok := attr.Attr.(*cloudevents.CloudEvent_CloudEventAttributeValue_CeString); ok {
 				contentType = stattr.CeString
 			}
 		}
 	}
 	switch dt := container.Data.(type) {
-	case *cepb.CloudEvent_BinaryData:
+	case *cloudevents.CloudEvent_BinaryData:
 		e.DataEncoded = dt.BinaryData
 		// NOTE: If we use SetData then the current implementation always sets
 		// the Base64 bit to true. Direct assignment appears to be the only way
@@ -193,11 +193,11 @@ func FromProto(container *cepb.CloudEvent) (*event.Event, error) {
 		// if err := e.SetData(contentType, dt.BinaryData); err != nil {
 		// 	return nil, fmt.Errorf("failed to convert binary type (%s) data: %s", contentType, err)
 		// }
-	case *cepb.CloudEvent_TextData:
+	case *cloudevents.CloudEvent_TextData:
 		if err := e.SetData(contentType, dt.TextData); err != nil {
 			return nil, fmt.Errorf("failed to convert text type (%s) data: %s", contentType, err)
 		}
-	case *cepb.CloudEvent_ProtoData:
+	case *cloudevents.CloudEvent_ProtoData:
 		e.SetDataContentType(ContentTypeProtobuf)
 		e.DataEncoded = dt.ProtoData.Value
 	}
@@ -216,7 +216,7 @@ func FromProto(container *cepb.CloudEvent) (*event.Event, error) {
 		case subject:
 			vs, _ := v.(string)
 			e.SetSubject(vs)
-		case time:
+		case timeStr:
 			vs, _ := v.(types.Timestamp)
 			e.SetTime(vs.Time)
 		default:

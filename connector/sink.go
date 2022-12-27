@@ -18,6 +18,7 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
 	ce "github.com/cloudevents/sdk-go/v2"
 )
@@ -43,6 +44,14 @@ func (r Result) ConvertToCeResult() ce.Result {
 		return nil
 	}
 	return ce.NewHTTPResult(int(r.c), r.msg)
+}
+
+func (r Result) GetCode() Code {
+	return r.GetCode()
+}
+
+func (r Result) Error() error {
+	return fmt.Errorf("{\"message\": \"%s\", \"code\": %d}", r.msg, r.c)
 }
 
 var (

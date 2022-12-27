@@ -31,7 +31,6 @@ type SourceConfigAccessor interface {
 	GetAttempts() int
 	GetVanusConfig() *VanusConfig
 	GetBatchSize() int
-	GetGRPCEnable() bool
 }
 
 type VanusConfig struct {
@@ -46,7 +45,6 @@ type SourceConfig struct {
 	Target            string       `json:"target" yaml:"target"`
 	SendEventAttempts *int         `json:"send_event_attempts" yaml:"send_event_attempts"`
 	Vanus             *VanusConfig `json:"vanus" yaml:"vanus"`
-	GRPCEnable        bool         `json:"grpc_enable" yaml:"grpc_enable"`
 	BatchSize         int          `json:"batch_size" yaml:"batch_size"`
 }
 
@@ -58,10 +56,6 @@ func (c *SourceConfig) GetBatchSize() int {
 	return c.BatchSize
 }
 
-func (c *SourceConfig) GetGRPCEnable() bool {
-	return c.GRPCEnable
-}
-
 func (c *SourceConfig) ConnectorType() Type {
 	return SourceConnector
 }
@@ -71,6 +65,10 @@ func (c *SourceConfig) Validate() error {
 	if target == "" && c.Vanus == nil {
 		return errors.New("config target and vanus can't be both empty")
 	}
+	// print configuration
+	log.Info("config", map[string]interface{}{
+		"target": c.Target,
+	})
 
 	if target != "" && c.Vanus != nil {
 		log.Info("vanus is configured, target was ignored", map[string]interface{}{
@@ -78,10 +76,20 @@ func (c *SourceConfig) Validate() error {
 			"eventbus": c.Vanus.Eventbus,
 		})
 	}
+	log.Info("config", map[string]interface{}{
+		"vanus": c.Vanus,
+	})
 
-	if c.BatchSize > 0 && !c.GRPCEnable {
-		log.Warning("config batch_size ignored,  because batch_size is set, but [ grpc_enable=false ]", nil)
+	if c.BatchSize > 0 && c.GetVanusConfig() == nil {
+		log.Warning("config batch_size ignored, because default HTTP sender doesn't support batch mode", nil)
 	}
+	log.Info("config", map[string]interface{}{
+		"batch_size": c.BatchSize,
+	})
+
+	log.Info("config", map[string]interface{}{
+		"send_event_attempts": c.SendEventAttempts,
+	})
 
 	_, err := url.Parse(target)
 	if err != nil {
