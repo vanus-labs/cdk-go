@@ -191,4 +191,5 @@ func (w *SourceWorker) doSend(force bool) {
 			}
 		}
 	}
+	w.current = nil
 }
