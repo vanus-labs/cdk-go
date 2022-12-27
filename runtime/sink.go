@@ -146,7 +146,8 @@ func (w *sinkWorker) Start(ctx context.Context) error {
 
 	log.Info("the connector started", map[string]interface{}{
 		log.ConnectorName: w.sink.Name(),
-		"listening":       port,
+		"HTTP":            w.cfg.GetPort(),
+		"gRPC":            w.cfg.GetGRPCPort(),
 	})
 	return nil
 }
