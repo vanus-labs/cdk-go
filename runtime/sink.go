@@ -19,6 +19,11 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"runtime/debug"
+	"sync"
+
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	cloudevents "github.com/linkall-labs/cdk-go/proto"
 	"github.com/linkall-labs/cdk-go/runtime/sender"
@@ -26,10 +31,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"net"
-	"os"
-	"runtime/debug"
-	"sync"
 
 	ce "github.com/cloudevents/sdk-go/v2"
 	"github.com/linkall-labs/cdk-go/config"
@@ -83,72 +84,88 @@ func newSinkWorker(cfg config.SinkConfigAccessor, sink connector.Sink) Worker {
 	}
 }
 
+func (w *sinkWorker) newHttpListener(ctx context.Context, port int) error {
+	ls, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return errors.Wrapf(err, "failed to listen port: %d", port)
+	}
+	ceClient, err := ce.NewClientHTTP(ce.WithListener(ls))
+	if err != nil {
+		return errors.Wrap(err, "failed to init cloudevents client")
+	}
+	log.Info("the http server ready to work", nil)
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		err = ceClient.StartReceiver(ctx, w.receive)
+		if err != nil {
+			panic(fmt.Sprintf("failed to start cloudevnets receiver: %s", err))
+		}
+	}()
+
+	return nil
+}
+
+func (w *sinkWorker) newVanusListener(_ context.Context, port int) error {
+	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return err
+	}
+	recoveryOpt := recovery.WithRecoveryHandlerContext(
+		func(ctx context.Context, p interface{}) error {
+			log.Error("goroutine panicked", map[string]interface{}{
+				log.KeyError: fmt.Sprintf("%v", p),
+				"stack":      string(debug.Stack()),
+			})
+			return status.Errorf(codes.Internal, "%v", p)
+		},
+	)
+
+	grpcServer := grpc.NewServer(
+		grpc.ChainStreamInterceptor(
+			recovery.StreamServerInterceptor(recoveryOpt),
+		),
+		grpc.ChainUnaryInterceptor(
+			recovery.UnaryServerInterceptor(recoveryOpt),
+		),
+	)
+
+	cloudevents.RegisterCloudEventsServer(grpcServer, w)
+	log.Info("the grpc server ready to work", nil)
+
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		err = grpcServer.Serve(listen)
+		if err != nil {
+			log.Error("grpc server occurred an error", map[string]interface{}{
+				log.KeyError: err,
+			})
+		}
+	}()
+	return nil
+}
+
 func (w *sinkWorker) Start(ctx context.Context) error {
-	port := w.cfg.GetPort()
-	if port > 0 {
-		ls, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-		if err != nil {
-			return errors.Wrapf(err, "failed to listen port: %d", port)
-		}
-		ceClient, err := ce.NewClientHTTP(ce.WithListener(ls))
-		if err != nil {
-			return errors.Wrap(err, "failed to init cloudevents client")
-		}
-		w.wg.Add(1)
-		go func() {
-			defer w.wg.Done()
-			err = ceClient.StartReceiver(ctx, w.receive)
+	for _, p := range w.cfg.GetProtocolConfig() {
+		switch p.Type {
+		case config.HTTPProtocol:
+			err := w.newHttpListener(ctx, p.Port)
 			if err != nil {
-				panic(fmt.Sprintf("failed to start cloudevnets receiver: %s", err))
+				return err
 			}
-		}()
-	}
-
-	port = w.cfg.GetGRPCPort()
-	if port > 0 {
-		listen, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-		if err != nil {
-			return err
-		}
-		recoveryOpt := recovery.WithRecoveryHandlerContext(
-			func(ctx context.Context, p interface{}) error {
-				log.Error("goroutine panicked", map[string]interface{}{
-					log.KeyError: fmt.Sprintf("%v", p),
-					"stack":      string(debug.Stack()),
-				})
-				return status.Errorf(codes.Internal, "%v", p)
-			},
-		)
-
-		grpcServer := grpc.NewServer(
-			grpc.ChainStreamInterceptor(
-				recovery.StreamServerInterceptor(recoveryOpt),
-			),
-			grpc.ChainUnaryInterceptor(
-				recovery.UnaryServerInterceptor(recoveryOpt),
-			),
-		)
-
-		cloudevents.RegisterCloudEventsServer(grpcServer, w)
-		log.Info("the grpc server ready to work", nil)
-
-		w.wg.Add(1)
-		go func() {
-			defer w.wg.Done()
-			err = grpcServer.Serve(listen)
+		case config.VanusProtocol:
+			err := w.newVanusListener(ctx, p.Port)
 			if err != nil {
-				log.Error("grpc server occurred an error", map[string]interface{}{
-					log.KeyError: err,
-				})
+				return err
 			}
-		}()
+		}
+		log.Info("the connector started", map[string]interface{}{
+			log.ConnectorName: w.sink.Name(),
+			"protocol":        p.Type,
+			"port":            p.Port,
+		})
 	}
-
-	log.Info("the connector started", map[string]interface{}{
-		log.ConnectorName: w.sink.Name(),
-		"HTTP":            w.cfg.GetPort(),
-		"gRPC":            w.cfg.GetGRPCPort(),
-	})
 	return nil
 }
 

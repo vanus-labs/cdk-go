@@ -17,8 +17,10 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 
 	"github.com/linkall-labs/cdk-go/log"
 	"github.com/linkall-labs/cdk-go/util"
@@ -72,8 +74,8 @@ const (
 	EnvPort       = "CONNECTOR_PORT"
 	EnvConfigFile = "CONNECTOR_CONFIG"
 	EnvSecretFile = "CONNECTOR_SECRET"
+	EnvProtocol   = "CONNECTOR_PROTOCOL"
 
-	defaultPort     = 8080
 	defaultAttempts = 3
 )
 
@@ -132,4 +134,36 @@ func getSecretFilePath() string {
 		file = "secret.yml"
 	}
 	return file
+}
+
+func getProtocolType() ProtocolType {
+	p := os.Getenv(EnvProtocol)
+	if p == "" {
+		return HTTPProtocol
+	}
+	switch p {
+	case string(HTTPProtocol):
+		return HTTPProtocol
+	case string(VanusProtocol):
+		return VanusProtocol
+	default:
+		panic("parse CONNECTOR_PROTOCOL unknown ")
+	}
+	return HTTPProtocol
+}
+
+func getPort() int {
+	portStr := os.Getenv(EnvPort)
+	if portStr != "" {
+		p, err := strconv.ParseInt(portStr, 10, 16)
+		if err != nil {
+			panic(fmt.Sprintf("parse CONNECTOR_PORT error: %s", err.Error()))
+		}
+		return int(p)
+	}
+	return 8080
+}
+
+func getTarget() string {
+	return os.Getenv(EnvTarget)
 }

@@ -66,10 +66,12 @@ func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) W
 }
 
 func (w *SourceWorker) Start(ctx context.Context) error {
-	if w.cfg.GetVanusConfig() != nil {
-		w.sd = sender.NewVanusSender(w.cfg.GetVanusConfig().Eventbus, w.cfg.GetVanusConfig().Eventbus)
-	} else {
-		w.sd = sender.NewHTTPSender(w.cfg.GetTarget())
+	p := w.cfg.GetProtocolConfig()
+	switch p.Type {
+	case config.HTTPProtocol:
+		w.sd = sender.NewHTTPSender(p.Target)
+	case config.VanusProtocol:
+		w.sd = sender.NewVanusSender(p.Target, p.Eventbus)
 	}
 	if w.sd == nil {
 		return errors.New("failed to init cloudevents sender")

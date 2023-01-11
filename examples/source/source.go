@@ -33,7 +33,7 @@ import (
 type exampleConfig struct {
 	cdkgo.SourceConfig `json:",inline" yaml:",inline"`
 	Source             string `json:"source" yaml:"source" validate:"required"`
-	Secret             Secret
+	Secret             Secret `json:"secret" yaml:"secret"`
 }
 
 func ExampleConfig() cdkgo.SourceConfigAccessor {
@@ -122,6 +122,5 @@ func (s *exampleSource) makeEvent() *ce.Event {
 
 func main() {
 	os.Setenv(config.EnvConfigFile, "./examples/source/config.yaml")
-	os.Setenv(config.EnvSecretFile, "./examples/source/secret.yaml")
 	cdkgo.RunSource(ExampleConfig, ExampleSource)
 }

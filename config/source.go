@@ -18,38 +18,23 @@ package config
 
 import (
 	"github.com/linkall-labs/cdk-go/log"
-	"net/url"
-	"os"
-
-	"github.com/pkg/errors"
 )
 
 type SourceConfigAccessor interface {
 	ConfigAccessor
-	GetTarget() string
+	GetProtocolConfig() ProtocolConfigSource
 	// GetAttempts send event max attempts, 0 will retry util success, default is 3.
 	GetAttempts() int
-	GetVanusConfig() *VanusConfig
 	GetBatchSize() int
-}
-
-type VanusConfig struct {
-	Endpoint string `json:"endpoint" yaml:"endpoint" validate:"require"`
-	Eventbus string `json:"eventbus" yaml:"eventbus" validate:"require"`
 }
 
 var _ SourceConfigAccessor = &SourceConfig{}
 
 type SourceConfig struct {
 	Config            `json:",inline" yaml:",inline"`
-	Target            string       `json:"target" yaml:"target"`
-	SendEventAttempts *int         `json:"send_event_attempts" yaml:"send_event_attempts"`
-	Vanus             *VanusConfig `json:"vanus" yaml:"vanus"`
-	BatchSize         int          `json:"batch_size" yaml:"batch_size"`
-}
-
-func (c *SourceConfig) GetVanusConfig() *VanusConfig {
-	return c.Vanus
+	Protocol          ProtocolConfigSource `json:"protocol" yaml:"protocol"`
+	SendEventAttempts *int                 `json:"send_event_attempts" yaml:"send_event_attempts"`
+	BatchSize         int                  `json:"batch_size" yaml:"batch_size"`
 }
 
 func (c *SourceConfig) GetBatchSize() int {
@@ -60,54 +45,36 @@ func (c *SourceConfig) ConnectorType() Type {
 	return SourceConnector
 }
 
+func (c *SourceConfig) GetProtocolConfig() ProtocolConfigSource {
+	if c.Protocol.Type == "" {
+		c.Protocol.Type = HTTPProtocol
+	}
+	if c.Protocol.Target == "" {
+		c.Protocol.Target = getTarget()
+	}
+	return c.Protocol
+}
+
 func (c *SourceConfig) Validate() error {
-	target := c.GetTarget()
-	if target == "" && c.Vanus == nil {
-		return errors.New("config target and vanus can't be both empty")
+	p := c.GetProtocolConfig()
+	err := p.Validate()
+	if err != nil {
+		return err
 	}
 	// print configuration
 	log.Info("config", map[string]interface{}{
-		"target": c.Target,
+		"target":   c.Protocol.Target,
+		"protocol": c.Protocol.Type,
 	})
-
-	if target != "" && c.Vanus != nil {
-		log.Info("vanus is configured, target was ignored", map[string]interface{}{
-			"endpoint": c.Vanus.Endpoint,
-			"eventbus": c.Vanus.Eventbus,
-		})
-	}
-	log.Info("config", map[string]interface{}{
-		"vanus": c.Vanus,
-	})
-
-	if c.BatchSize > 0 && c.GetVanusConfig() == nil {
+	if c.BatchSize > 0 && c.Protocol.Type == HTTPProtocol {
 		log.Warning("config batch_size ignored, because default HTTP sender doesn't support batch mode", nil)
 	}
-	log.Info("config", map[string]interface{}{
-		"batch_size": c.BatchSize,
-	})
-
-	log.Info("config", map[string]interface{}{
-		"send_event_attempts": c.SendEventAttempts,
-	})
-
-	_, err := url.Parse(target)
-	if err != nil {
-		return errors.Wrap(err, "target is invalid")
-	}
-
 	return c.Config.Validate()
 }
+
 func (c *SourceConfig) GetAttempts() int {
 	if c.SendEventAttempts == nil {
 		return defaultAttempts
 	}
 	return *c.SendEventAttempts
-}
-
-func (c *SourceConfig) GetTarget() string {
-	if c.Target != "" {
-		return c.Target
-	}
-	return os.Getenv(EnvTarget)
 }

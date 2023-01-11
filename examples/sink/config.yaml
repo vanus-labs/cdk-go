@@ -1,1 +1,6 @@
+protocol:
+  - type: http
+    port: 8080
+  - type: vanus
+    port: 8081
 count: 100

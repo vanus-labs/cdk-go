@@ -16,29 +16,17 @@ limitations under the License.
 
 package config
 
-import (
-	"fmt"
-	"os"
-	"strconv"
-)
-
 var _ SinkConfigAccessor = &SinkConfig{}
 
 type SinkConfigAccessor interface {
 	ConfigAccessor
-	// GetPort receive event server use port, default 8080
-	GetPort() int
-	GetGRPCPort() int
+	// GetProtocolConfig receive event server use protocol, default http and port is 8080
+	GetProtocolConfig() ProtocolConfigSinkList
 }
 
 type SinkConfig struct {
 	Config   `json:",inline" yaml:",inline"`
-	Port     int `json:"port" yaml:"port"`
-	GRPCPort int `json:"grpc_port" yaml:"grpc_port"`
-}
-
-func (c *SinkConfig) GetGRPCPort() int {
-	return c.GRPCPort
+	Protocol []ProtocolConfigSink `json:"protocol" yaml:"protocol"`
 }
 
 func (c *SinkConfig) GetSecret() SecretAccessor {
@@ -46,6 +34,10 @@ func (c *SinkConfig) GetSecret() SecretAccessor {
 }
 
 func (c *SinkConfig) Validate() error {
+	err := c.GetProtocolConfig().Validate()
+	if err != nil {
+		return err
+	}
 	return c.Config.Validate()
 }
 
@@ -53,17 +45,19 @@ func (c *SinkConfig) ConnectorType() Type {
 	return SinkConnector
 }
 
-func (c *SinkConfig) GetPort() int {
-	if c.Port > 0 {
-		return c.Port
-	}
-	portStr := os.Getenv(EnvPort)
-	if portStr != "" {
-		p, err := strconv.ParseInt(portStr, 10, 16)
-		if err != nil {
-			panic(fmt.Sprintf("parse CONNECTOR_PORT error: %s", err.Error()))
+func (c *SinkConfig) GetProtocolConfig() ProtocolConfigSinkList {
+	t := getProtocolType()
+	port := getPort()
+	if len(c.Protocol) > 0 {
+		for i := range c.Protocol {
+			if c.Protocol[i].Type == "" {
+				c.Protocol[i].Type = t
+			}
+			if c.Protocol[i].Port == 0 {
+				c.Protocol[i].Port = port
+			}
 		}
-		return int(p)
+		return c.Protocol
 	}
-	return defaultPort
+	return []ProtocolConfigSink{{Type: t, Port: port}}
 }
