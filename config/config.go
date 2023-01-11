@@ -141,15 +141,7 @@ func getProtocolType() ProtocolType {
 	if p == "" {
 		return HTTPProtocol
 	}
-	switch p {
-	case string(HTTPProtocol):
-		return HTTPProtocol
-	case string(VanusProtocol):
-		return VanusProtocol
-	default:
-		panic("parse CONNECTOR_PROTOCOL unknown ")
-	}
-	return HTTPProtocol
+	return ProtocolType(p)
 }
 
 func getPort() int {
