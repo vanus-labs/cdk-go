@@ -14,48 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package internal
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"os"
-	"strings"
 	"time"
 
 	ce "github.com/cloudevents/sdk-go/v2"
 	cdkgo "github.com/linkall-labs/cdk-go"
-	"github.com/linkall-labs/cdk-go/config"
 )
-
-type exampleConfig struct {
-	cdkgo.SourceConfig `json:",inline" yaml:",inline"`
-	Source             string `json:"source" yaml:"source" validate:"required"`
-	Secret             Secret
-}
-
-func ExampleConfig() cdkgo.SourceConfigAccessor {
-	return &exampleConfig{}
-}
-
-func (c *exampleConfig) GetSecret() cdkgo.SecretAccessor {
-	return &c.Secret
-}
-
-func (c *exampleConfig) Validate() error {
-	if !strings.HasPrefix(c.Source, "example") {
-		return fmt.Errorf("source is invlaid")
-	}
-	return c.SourceConfig.Validate()
-}
-
-type Secret struct {
-	Host     string `json:"host" yaml:"host" validate:"required"`
-	Username string `json:"username" yaml:"username" validate:"required"`
-	Password string `json:"password" yaml:"password" validate:"required"`
-}
 
 var _ cdkgo.Source = &exampleSource{}
 
@@ -65,7 +35,7 @@ type exampleSource struct {
 	events chan *cdkgo.Tuple
 }
 
-func ExampleSource() cdkgo.Source {
+func NewExampleSource() cdkgo.Source {
 	return &exampleSource{
 		events: make(chan *cdkgo.Tuple, 100),
 	}
@@ -118,10 +88,4 @@ func (s *exampleSource) makeEvent() *ce.Event {
 		"string": fmt.Sprintf("str-%d", s.number),
 	})
 	return &event
-}
-
-func main() {
-	os.Setenv(config.EnvConfigFile, "./examples/source/config.yaml")
-	os.Setenv(config.EnvSecretFile, "./examples/source/secret.yaml")
-	cdkgo.RunSource(ExampleConfig, ExampleSource)
 }

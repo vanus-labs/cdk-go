@@ -14,27 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package internal
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	ce "github.com/cloudevents/sdk-go/v2"
 	cdkgo "github.com/linkall-labs/cdk-go"
-	"github.com/linkall-labs/cdk-go/config"
 )
-
-type exampleConfig struct {
-	cdkgo.SinkConfig `json:",inline" yaml:",inline"`
-	Count            int `json:"count" yaml:"count"`
-}
-
-func ExampleConfig() cdkgo.SinkConfigAccessor {
-	return &exampleConfig{}
-}
 
 var _ cdkgo.Sink = &exampleSink{}
 
@@ -42,7 +31,7 @@ type exampleSink struct {
 	number int
 }
 
-func ExampleSink() cdkgo.Sink {
+func NewExampleSink() cdkgo.Sink {
 	return &exampleSink{}
 }
 
@@ -67,9 +56,4 @@ func (s *exampleSink) Arrived(ctx context.Context, events ...*ce.Event) cdkgo.Re
 		fmt.Println(s.number, string(b))
 	}
 	return cdkgo.SuccessResult
-}
-
-func main() {
-	os.Setenv(config.EnvConfigFile, "./examples/sink/config.yaml")
-	cdkgo.RunSink(ExampleConfig, ExampleSink)
 }
