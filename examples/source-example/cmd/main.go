@@ -1,4 +1,4 @@
-// Copyright 2022 Linkall Inc.
+// Copyright 2023 Linkall Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package connector
+package main
 
 import (
-	"context"
-
-	"github.com/linkall-labs/cdk-go/config"
+	cdkgo "github.com/linkall-labs/cdk-go"
+	"github.com/linkall-labs/connector/source/example/internal"
 )
 
-type Connector interface {
-	Initialize(ctx context.Context, cfg config.ConfigAccessor) error
-	Name() string
-	Destroy() error
+func main() {
+	cdkgo.RunSource(internal.NewExampleConfig, internal.NewExampleSource)
 }

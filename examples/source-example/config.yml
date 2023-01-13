@@ -1,0 +1,6 @@
+target: "http://localhost:8080"
+source: "exampleSource"
+secret:
+  host: "127.0.0.1:3306"
+  username: "root"
+  password: "123456"
