@@ -18,12 +18,13 @@ import (
 	"context"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/linkall-labs/cdk-go/config"
-	"github.com/linkall-labs/cdk-go/connector"
-	"github.com/linkall-labs/cdk-go/log"
-	"github.com/linkall-labs/cdk-go/store"
-	"github.com/linkall-labs/cdk-go/util"
 	"github.com/pkg/errors"
+
+	"github.com/vanus-labs/cdk-go/config"
+	"github.com/vanus-labs/cdk-go/connector"
+	"github.com/vanus-labs/cdk-go/log"
+	"github.com/vanus-labs/cdk-go/store"
+	"github.com/vanus-labs/cdk-go/util"
 )
 
 func runConnector(cfg config.ConfigAccessor, c connector.Connector) error {

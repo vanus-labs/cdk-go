@@ -20,13 +20,13 @@ import (
 	"net/url"
 	stdtime "time"
 
-	cloudevents "github.com/linkall-labs/cdk-go/proto"
-
 	// third-party libraries
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/cloudevents/sdk-go/v2/types"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	cloudevents "github.com/vanus-labs/cdk-go/proto"
 )
 
 const (
@@ -41,9 +41,7 @@ const (
 	timeStr         = "time"
 )
 
-var (
-	zeroTime = stdtime.Time{}
-)
+var zeroTime = stdtime.Time{}
 
 // ToProto convert an SDK event to a protobuf variant of the event that can be marshaled.
 func ToProto(e *event.Event) (*cloudevents.CloudEvent, error) {

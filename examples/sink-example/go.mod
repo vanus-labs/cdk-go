@@ -1,13 +1,13 @@
-module github.com/linkall-labs/connector/sink/example
+module github.com/vanus-labs/connector/sink/example
 
 go 1.18
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.12.0
-	github.com/linkall-labs/cdk-go v0.0.0
+	github.com/vanus-labs/cdk-go v0.0.0
 )
 
-replace github.com/linkall-labs/cdk-go v0.0.0 => ../..
+replace github.com/vanus-labs/cdk-go v0.0.0 => ../..
 
 require (
 	github.com/coreos/go-semver v0.3.0 // indirect

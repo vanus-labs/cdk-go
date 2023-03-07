@@ -22,23 +22,25 @@ import (
 	"runtime/debug"
 	"sync"
 
+	ce "github.com/cloudevents/sdk-go/v2"
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	cloudevents "github.com/linkall-labs/cdk-go/proto"
-	"github.com/linkall-labs/cdk-go/runtime/sender"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	ce "github.com/cloudevents/sdk-go/v2"
-	"github.com/linkall-labs/cdk-go/config"
-	"github.com/linkall-labs/cdk-go/connector"
-	"github.com/linkall-labs/cdk-go/log"
-	"github.com/pkg/errors"
+	"github.com/vanus-labs/cdk-go/config"
+	"github.com/vanus-labs/cdk-go/connector"
+	"github.com/vanus-labs/cdk-go/log"
+	cloudevents "github.com/vanus-labs/cdk-go/proto"
+	"github.com/vanus-labs/cdk-go/runtime/sender"
 )
 
-type SinkConfigConstructor func() config.SinkConfigAccessor
-type SinkConstructor func() connector.Sink
+type (
+	SinkConfigConstructor func() config.SinkConfigAccessor
+	SinkConstructor       func() connector.Sink
+)
 
 func RunSink(cfgCtor SinkConfigConstructor, sinkCtor SinkConstructor) {
 	cfg := cfgCtor()
@@ -57,6 +59,9 @@ type sinkWorker struct {
 	sink connector.Sink
 	wg   sync.WaitGroup
 }
+
+// Make sure the sinkWorker implements the cloudevents.CloudEventsServer.
+var _ cloudevents.CloudEventsServer = (*sinkWorker)(nil)
 
 func (w *sinkWorker) Send(ctx context.Context, event *cloudevents.BatchEvent) (*emptypb.Empty, error) {
 	pbEvents := event.Events.Events

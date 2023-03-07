@@ -18,9 +18,9 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/linkall-labs/cdk-go/log"
-
 	"github.com/pkg/errors"
+
+	"github.com/vanus-labs/cdk-go/log"
 )
 
 type SourceConfigAccessor interface {
@@ -97,6 +97,7 @@ func (c *SourceConfig) Validate() error {
 
 	return c.Config.Validate()
 }
+
 func (c *SourceConfig) GetAttempts() int {
 	if c.SendEventAttempts == nil {
 		return defaultAttempts

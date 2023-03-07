@@ -15,12 +15,12 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"reflect"
 
-	"github.com/linkall-labs/cdk-go/log"
-	"github.com/linkall-labs/cdk-go/util"
-	"github.com/pkg/errors"
+	"github.com/vanus-labs/cdk-go/log"
+	"github.com/vanus-labs/cdk-go/util"
 )
 
 type Type string
@@ -30,8 +30,7 @@ const (
 	SourceConnector Type = "source"
 )
 
-type SecretAccessor interface {
-}
+type SecretAccessor interface{}
 
 type ConfigAccessor interface {
 	ConnectorType() Type
