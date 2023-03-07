@@ -162,7 +162,13 @@ func (w *sinkWorker) Start(ctx context.Context) error {
 
 func (w *sinkWorker) receive(ctx context.Context, event ce.Event) ce.Result {
 	result := w.sink.Arrived(ctx, &event)
-	return result.ConvertToCeResult()
+	err := result.ConvertToCeResult()
+	if err != nil {
+		log.Info("event process failed", map[string]interface{}{
+			log.KeyError: err,
+		})
+	}
+	return err
 }
 
 func (w *sinkWorker) Stop() error {
