@@ -16,17 +16,18 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"os"
 	"sync"
 	"time"
 
 	ce "github.com/cloudevents/sdk-go/v2"
-	"github.com/linkall-labs/cdk-go/config"
-	"github.com/linkall-labs/cdk-go/connector"
-	"github.com/linkall-labs/cdk-go/log"
-	"github.com/linkall-labs/cdk-go/runtime/sender"
-	"github.com/linkall-labs/cdk-go/util"
-	"github.com/pkg/errors"
+
+	"github.com/vanus-labs/cdk-go/config"
+	"github.com/vanus-labs/cdk-go/connector"
+	"github.com/vanus-labs/cdk-go/log"
+	"github.com/vanus-labs/cdk-go/runtime/sender"
+	"github.com/vanus-labs/cdk-go/util"
 )
 
 type SourceConfigConstructor func() config.SourceConfigAccessor

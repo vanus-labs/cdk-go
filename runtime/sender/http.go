@@ -16,15 +16,14 @@ package sender
 
 import (
 	"context"
+	"errors"
 
 	ce "github.com/cloudevents/sdk-go/v2"
-	"github.com/linkall-labs/cdk-go/log"
-	"github.com/pkg/errors"
+
+	"github.com/vanus-labs/cdk-go/log"
 )
 
-var (
-	ErrNotSupportBatch = errors.New("http sender: batch sending isn't supported")
-)
+var ErrNotSupportBatch = errors.New("http sender: batch sending isn't supported")
 
 type httpSender struct {
 	ceClient ce.Client

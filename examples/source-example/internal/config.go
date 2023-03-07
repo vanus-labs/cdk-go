@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	cdkgo "github.com/linkall-labs/cdk-go"
+	cdkgo "github.com/vanus-labs/cdk-go"
 )
 
 var _ cdkgo.SourceConfigAccessor = &exampleConfig{}

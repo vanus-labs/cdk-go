@@ -15,10 +15,10 @@
 package cdkgo
 
 import (
-	"github.com/linkall-labs/cdk-go/config"
-	"github.com/linkall-labs/cdk-go/connector"
-	"github.com/linkall-labs/cdk-go/runtime"
-	"github.com/linkall-labs/cdk-go/store"
+	"github.com/vanus-labs/cdk-go/config"
+	"github.com/vanus-labs/cdk-go/connector"
+	"github.com/vanus-labs/cdk-go/runtime"
+	"github.com/vanus-labs/cdk-go/store"
 )
 
 type ConfigAccessor = config.ConfigAccessor

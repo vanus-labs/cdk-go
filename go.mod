@@ -1,4 +1,4 @@
-module github.com/linkall-labs/cdk-go
+module github.com/vanus-labs/cdk-go
 
 go 1.18
 

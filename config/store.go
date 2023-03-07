@@ -14,7 +14,7 @@
 
 package config
 
-import "github.com/pkg/errors"
+import "errors"
 
 type StoreType string
 

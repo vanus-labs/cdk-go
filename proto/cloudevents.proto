@@ -22,14 +22,14 @@
 
 syntax = "proto3";
 
-package linkall.vanus.cloudevents;
+package vanus.core.cloudevents;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 option csharp_namespace = "CloudNative.CloudEvents.V1";
-option go_package = "github.com/linkall-labs/vanus/proto/pkg/cloudevents";
+option go_package = "github.com/vanus-labs/vanus/proto/pkg/cloudevents";
 option java_package = "io.cloudevents.v1.proto";
 option java_multiple_files = true;
 option php_namespace = "Io\\CloudEvents\\V1\\Proto";

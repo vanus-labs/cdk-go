@@ -17,7 +17,7 @@ package connector
 import (
 	"context"
 
-	"github.com/linkall-labs/cdk-go/config"
+	"github.com/vanus-labs/cdk-go/config"
 )
 
 type Connector interface {

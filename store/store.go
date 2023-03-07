@@ -17,13 +17,12 @@ package store
 import (
 	"context"
 
-	"github.com/linkall-labs/cdk-go/config"
 	"github.com/pkg/errors"
+
+	"github.com/vanus-labs/cdk-go/config"
 )
 
-var (
-	ErrKeyNotExist = errors.New("key not exist")
-)
+var ErrKeyNotExist = errors.New("key not exist")
 
 type KVStore interface {
 	Set(ctx context.Context, key string, value []byte) error

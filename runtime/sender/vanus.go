@@ -19,10 +19,11 @@ import (
 	"time"
 
 	ce "github.com/cloudevents/sdk-go/v2"
-	"github.com/linkall-labs/cdk-go/log"
-	cloudevents "github.com/linkall-labs/cdk-go/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/vanus-labs/cdk-go/log"
+	cloudevents "github.com/vanus-labs/cdk-go/proto"
 )
 
 type vanusSender struct {
