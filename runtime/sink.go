@@ -75,7 +75,11 @@ func (w *sinkWorker) Send(ctx context.Context, event *cloudevents.BatchEvent) (*
 	}
 
 	if result := w.sink.Arrived(ctx, events...); result != connector.Success {
-		return nil, result.Error()
+		err := result.Error()
+		log.Info("event process failed", map[string]interface{}{
+			log.KeyError: err,
+		})
+		return nil, err
 	}
 	return &emptypb.Empty{}, nil
 }
