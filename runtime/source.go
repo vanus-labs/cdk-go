@@ -142,8 +142,7 @@ func (w *SourceWorker) doSend(force bool) {
 		events[idx] = w.current[idx].Event
 	}
 
-	ctx := context.Background()
-	ctx = ce.WithEncodingStructured(ctx)
+	ctx := ce.WithEncodingStructured(context.Background())
 	var attempt int
 	var err error
 	for {
