@@ -143,6 +143,7 @@ func (w *SourceWorker) doSend(force bool) {
 	}
 
 	ctx := context.Background()
+	ctx = ce.WithEncodingStructured(ctx)
 	var attempt int
 	var err error
 	for {
