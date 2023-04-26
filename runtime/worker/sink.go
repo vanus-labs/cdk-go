@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package worker
 
 import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 	"runtime/debug"
 	"sync"
 
@@ -37,33 +36,18 @@ import (
 	"github.com/vanus-labs/cdk-go/runtime/sender"
 )
 
-type (
-	SinkConfigConstructor func() config.SinkConfigAccessor
-	SinkConstructor       func() connector.Sink
-)
-
-func RunSink(cfgCtor SinkConfigConstructor, sinkCtor SinkConstructor) {
-	cfg := cfgCtor()
-	sink := sinkCtor()
-	err := runConnector(cfg, sink)
-	if err != nil {
-		log.Error("run sink error", map[string]interface{}{
-			log.KeyError: err,
-		})
-		os.Exit(-1)
-	}
+type SinkWorker struct {
+	cfg    config.SinkConfigAccessor
+	sink   connector.Sink
+	wg     sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-type sinkWorker struct {
-	cfg  config.SinkConfigAccessor
-	sink connector.Sink
-	wg   sync.WaitGroup
-}
+// Make sure the SinkWorker implements the cloudevents.CloudEventsServer.
+var _ cloudevents.CloudEventsServer = (*SinkWorker)(nil)
 
-// Make sure the sinkWorker implements the cloudevents.CloudEventsServer.
-var _ cloudevents.CloudEventsServer = (*sinkWorker)(nil)
-
-func (w *sinkWorker) Send(ctx context.Context, event *cloudevents.BatchEvent) (*emptypb.Empty, error) {
+func (w *SinkWorker) Send(ctx context.Context, event *cloudevents.BatchEvent) (*emptypb.Empty, error) {
 	pbEvents := event.Events.Events
 	events := make([]*ce.Event, len(pbEvents))
 	for idx := range pbEvents {
@@ -84,28 +68,25 @@ func (w *sinkWorker) Send(ctx context.Context, event *cloudevents.BatchEvent) (*
 	return &emptypb.Empty{}, nil
 }
 
-func newSinkWorker(cfg config.SinkConfigAccessor, sink connector.Sink) Worker {
-	return &sinkWorker{
+func newSinkWorker(cfg config.SinkConfigAccessor, sink connector.Sink) *SinkWorker {
+	return &SinkWorker{
 		cfg:  cfg,
 		sink: sink,
 	}
 }
 
-func (w *sinkWorker) Start(ctx context.Context) error {
+func (w *SinkWorker) Start(ctx context.Context) error {
+	w.ctx, w.cancel = context.WithCancel(ctx)
 	port := w.cfg.GetPort()
 	if port > 0 {
-		ls, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-		if err != nil {
-			return errors.Wrapf(err, "failed to listen port: %d", port)
-		}
-		ceClient, err := ce.NewClientHTTP(ce.WithListener(ls))
+		ceClient, err := ce.NewClientHTTP(ce.WithPort(port))
 		if err != nil {
 			return errors.Wrap(err, "failed to init cloudevents client")
 		}
 		w.wg.Add(1)
 		go func() {
 			defer w.wg.Done()
-			err = ceClient.StartReceiver(ctx, w.receive)
+			err = ceClient.StartReceiver(w.ctx, w.receive)
 			if err != nil {
 				panic(fmt.Sprintf("failed to start cloudevnets receiver: %s", err))
 			}
@@ -160,7 +141,7 @@ func (w *sinkWorker) Start(ctx context.Context) error {
 	return nil
 }
 
-func (w *sinkWorker) receive(ctx context.Context, event ce.Event) ce.Result {
+func (w *SinkWorker) receive(ctx context.Context, event ce.Event) ce.Result {
 	result := w.sink.Arrived(ctx, &event)
 	err := result.ConvertToCeResult()
 	if err != nil {
@@ -171,7 +152,8 @@ func (w *sinkWorker) receive(ctx context.Context, event ce.Event) ce.Result {
 	return err
 }
 
-func (w *sinkWorker) Stop() error {
+func (w *SinkWorker) Stop() error {
+	w.cancel()
 	w.wg.Wait()
 	return w.sink.Destroy()
 }

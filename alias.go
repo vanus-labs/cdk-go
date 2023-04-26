@@ -37,12 +37,12 @@ type Sink = connector.Sink
 type KVStore = store.KVStore
 
 var (
-	NewTuple  = connector.NewTuple
-	RunSource = runtime.RunSource
+	NewTuple      = connector.NewTuple
+	RunSource     = runtime.RunSource
+	RunHttpSource = runtime.RunHttpSource
 
 	SuccessResult = connector.Success
 	NewResult     = connector.NewResult
-	RunSink       = runtime.RunSink
 
 	GetKVStore = store.GetKVStore
 )

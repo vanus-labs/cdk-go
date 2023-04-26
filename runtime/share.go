@@ -1,0 +1,52 @@
+// Copyright 2022 Linkall Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package runtime
+
+import (
+	"github.com/vanus-labs/cdk-go/log"
+	"github.com/vanus-labs/cdk-go/util"
+	"github.com/vanus-labs/vanus-connect-runtime/pkg/controller"
+)
+
+func runShareSource(name string, source Source) {
+	ctx := util.SignalContext()
+	source.Start(ctx)
+	newConnector := func(connectorID, config string) error {
+		return source.RegisterSource(connectorID, []byte(config))
+	}
+	ctrl, err := controller.NewController(controller.FilterConnector{
+		Kind: "source",
+		Type: name,
+	}, controller.ConnectorHandlerFuncs{
+		AddFunc:    newConnector,
+		UpdateFunc: newConnector,
+		DeleteFunc: func(connectorID string) error {
+			source.RemoveSource(connectorID)
+			return nil
+		},
+	})
+	if err != nil {
+		panic("new source connector controller failed")
+	}
+	go ctrl.Run(ctx)
+	<-ctx.Done()
+	log.Info("received system signal, beginning shutdown", map[string]interface{}{
+		"name": name,
+	})
+	source.Stop()
+	log.Info("connector shutdown graceful", map[string]interface{}{
+		"name": name,
+	})
+}

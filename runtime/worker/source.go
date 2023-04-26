@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package worker
 
 import (
 	"context"
@@ -30,21 +30,12 @@ import (
 	"github.com/vanus-labs/cdk-go/util"
 )
 
-type SourceConfigConstructor func() config.SourceConfigAccessor
-
-type SourceConstructor func() connector.Source
-
-func RunSource(cfgCtor SourceConfigConstructor, sourceCtor SourceConstructor) {
-	cfg := cfgCtor()
-	source := sourceCtor()
-	err := runConnector(cfg, source)
-	if err != nil {
-		log.Error("run source error", map[string]interface{}{
-			log.KeyError: err,
-			"name":       source.Name(),
-		})
-		os.Exit(-1)
+func isShare() bool {
+	runtime := os.Getenv("CONNECTOR_RUNTIME")
+	if runtime == "k8s" {
+		return true
 	}
+	return false
 }
 
 type SourceWorker struct {
@@ -55,13 +46,19 @@ type SourceWorker struct {
 	sd       sender.CloudEventSender
 	mutex    sync.RWMutex
 	current  []*connector.Tuple
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
-func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) Worker {
+func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) *SourceWorker {
 	return &SourceWorker{
 		cfg:    cfg,
 		source: source,
 	}
+}
+
+func (w *SourceWorker) GetSource() connector.Source {
+	return w.source
 }
 
 func (w *SourceWorker) Start(ctx context.Context) error {
@@ -73,17 +70,17 @@ func (w *SourceWorker) Start(ctx context.Context) error {
 	if w.sd == nil {
 		return errors.New("failed to init cloudevents sender")
 	}
-
+	w.ctx, w.cancel = context.WithCancel(ctx)
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
-		w.execute(ctx)
+		w.execute(w.ctx)
 	}()
 
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
-		w.send(ctx)
+		w.send(w.ctx)
 	}()
 
 	log.Info("the connector started", map[string]interface{}{
@@ -126,6 +123,7 @@ func (w *SourceWorker) needAttempt(attempt int) bool {
 }
 
 func (w *SourceWorker) Stop() error {
+	w.cancel()
 	w.wg.Wait()
 	return w.source.Destroy()
 }

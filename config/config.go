@@ -14,15 +14,6 @@
 
 package config
 
-import (
-	"errors"
-	"os"
-	"reflect"
-
-	"github.com/vanus-labs/cdk-go/log"
-	"github.com/vanus-labs/cdk-go/util"
-)
-
 type Type string
 
 const (
@@ -64,69 +55,10 @@ func (c *Config) GetSecret() SecretAccessor {
 }
 
 const (
-	EnvLogLevel   = "LOG_LEVEL"
-	EnvTarget     = "CONNECTOR_TARGET"
-	EnvPort       = "CONNECTOR_PORT"
-	EnvConfigFile = "CONNECTOR_CONFIG"
-	EnvSecretFile = "CONNECTOR_SECRET"
+	EnvLogLevel = "LOG_LEVEL"
+	EnvTarget   = "CONNECTOR_TARGET"
+	EnvPort     = "CONNECTOR_PORT"
 
 	defaultPort     = 8080
 	defaultAttempts = 3
 )
-
-func ParseConfig(cfg ConfigAccessor) error {
-	err := parseConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	err = parseSecret(cfg.GetSecret())
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Info("ignored: no secret.yml", nil)
-		} else {
-			return err
-		}
-	}
-	return nil
-}
-
-func parseConfig(cfg ConfigAccessor) error {
-	err := util.ParseConfig(getConfigFilePath(), cfg)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func parseSecret(secret SecretAccessor) error {
-	if secret == nil {
-		return nil
-	}
-	v := reflect.ValueOf(secret)
-	if v.Kind() != reflect.Ptr {
-		return errors.New("secret type must be pointer")
-	}
-
-	err := util.ParseConfig(getSecretFilePath(), secret)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func getConfigFilePath() string {
-	file := os.Getenv(EnvConfigFile)
-	if file == "" {
-		file = "config.yml"
-	}
-	return file
-}
-
-func getSecretFilePath() string {
-	file := os.Getenv(EnvSecretFile)
-	if file == "" {
-		file = "secret.yml"
-	}
-	return file
-}
