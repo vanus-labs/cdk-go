@@ -36,12 +36,11 @@ type Worker interface {
 
 func isShare() bool {
 	runtime := os.Getenv("CONNECTOR-RUNTIME")
-	return strings.ToLower(runtime) == "k8s"
+	return strings.ToLower(runtime) == "share"
 }
 
 func RunSink(component string, cfgCtor SinkConfigConstructor, sinkCtor func() connector.Sink) {
-	sink := newSinkWorker(cfgCtor, sinkCtor)
-	runConnector(config.SinkConnector, component, sink)
+	// todo
 }
 
 func RunSource(component string, cfgCtor SourceConfigConstructor, sourceCtor func() connector.Source) {

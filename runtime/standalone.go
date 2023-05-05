@@ -21,9 +21,9 @@ import (
 	"github.com/vanus-labs/cdk-go/util"
 )
 
-func runStandaloneConnector(name string, connector Worker) {
+func runStandaloneConnector(name string, worker Worker) {
 	ctx := util.SignalContext()
-	connector.Start(ctx)
+	worker.Start(ctx)
 	cfg, err := util.ReadConfigFile()
 	if err != nil {
 		log.Error("read config file error", map[string]interface{}{
@@ -32,7 +32,7 @@ func runStandaloneConnector(name string, connector Worker) {
 		})
 		os.Exit(-1)
 	}
-	err = connector.RegisterConnector("", cfg)
+	err = worker.RegisterConnector("", cfg)
 	if err != nil {
 		log.Error("read config file error", map[string]interface{}{
 			"name":       name,
@@ -44,7 +44,7 @@ func runStandaloneConnector(name string, connector Worker) {
 	log.Info("received system signal, beginning shutdown", map[string]interface{}{
 		"name": name,
 	})
-	connector.Stop()
+	worker.Stop()
 	log.Info("connector shutdown graceful", map[string]interface{}{
 		"name": name,
 	})

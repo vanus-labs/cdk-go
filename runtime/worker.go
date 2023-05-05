@@ -24,49 +24,39 @@ import (
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/connector"
 	"github.com/vanus-labs/cdk-go/log"
-	rc "github.com/vanus-labs/cdk-go/runtime/worker"
+	"github.com/vanus-labs/cdk-go/runtime/worker"
 	"github.com/vanus-labs/cdk-go/util"
 )
 
-type worker struct {
-	cfgCtor         func() config.ConfigAccessor
-	connectorCtor   func() connector.Connector
-	connectorWorker map[string]rc.Connector
+type sourceWorker struct {
+	cfgCtor         func() config.SourceConfigAccessor
+	sourceCtor      func() connector.Source
+	connectorWorker map[string]worker.Connector
 	cLock           sync.RWMutex
 	ctx             context.Context
 	cancel          context.CancelFunc
 	running         bool
 }
 
-var _ Worker = &worker{}
+var _ Worker = &sourceWorker{}
 
 func newSourceWorker(cfgCtor func() config.SourceConfigAccessor,
-	sourceCtor func() connector.Source) *worker {
-	return newWorker(func() config.ConfigAccessor {
-		return cfgCtor()
-	}, func() connector.Connector {
-		return sourceCtor()
-	})
-}
-
-func newSinkWorker(cfgCtor func() config.SinkConfigAccessor,
-	sinkCtor func() connector.Sink) *worker {
-	return newWorker(func() config.ConfigAccessor {
-		return cfgCtor()
-	}, func() connector.Connector {
-		return sinkCtor()
-	})
-}
-
-func newWorker(cfgCtor func() config.ConfigAccessor,
-	connectorCtor func() connector.Connector) *worker {
-	return &worker{
-		cfgCtor:       cfgCtor,
-		connectorCtor: connectorCtor,
+	sourceCtor func() connector.Source) *sourceWorker {
+	return &sourceWorker{
+		cfgCtor:    cfgCtor,
+		sourceCtor: sourceCtor,
 	}
 }
 
-func (s *worker) Start(ctx context.Context) error {
+func newWorker(cfgCtor func() config.SourceConfigAccessor,
+	connectorCtor func() connector.Source) *sourceWorker {
+	return &sourceWorker{
+		cfgCtor:    cfgCtor,
+		sourceCtor: connectorCtor,
+	}
+}
+
+func (s *sourceWorker) Start(ctx context.Context) error {
 	s.cLock.Lock()
 	defer s.cLock.Unlock()
 	s.ctx, s.cancel = context.WithCancel(ctx)
@@ -74,7 +64,7 @@ func (s *worker) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *worker) Stop() error {
+func (s *sourceWorker) Stop() error {
 	s.cLock.Lock()
 	defer s.cLock.Unlock()
 	s.cancel()
@@ -95,7 +85,7 @@ func (s *worker) Stop() error {
 	return nil
 }
 
-func (s *worker) initConfig(config []byte, cfg config.ConfigAccessor) error {
+func (s *sourceWorker) initConfig(config []byte, cfg config.ConfigAccessor) error {
 	err := util.ParseConfig(config, cfg)
 	if err != nil {
 		return errors.Wrap(err, "parse config error")
@@ -111,23 +101,17 @@ func (s *worker) initConfig(config []byte, cfg config.ConfigAccessor) error {
 	return nil
 }
 
-func (s *worker) newConnectorWorker(cfg config.ConfigAccessor) (rc.Connector, error) {
-	c := s.connectorCtor()
-	err := c.Initialize(s.ctx, cfg)
+func (s *sourceWorker) newConnectorWorker(cfg config.SourceConfigAccessor) (worker.Connector, error) {
+	source := s.sourceCtor()
+	err := source.Initialize(s.ctx, cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "source connector initialize failed")
 	}
-	var wc rc.Connector
-	switch cfg.ConnectorKind() {
-	case config.SourceConnector:
-		wc = rc.NewSourceWorker(cfg.(config.SourceConfigAccessor), c.(connector.Source))
-	case config.SinkConnector:
-		wc = rc.NewSinkWorker(cfg.(config.SinkConfigAccessor), c.(connector.Sink))
-	}
+	wc := worker.NewSourceWorker(cfg, source)
 	return wc, nil
 }
 
-func (s *worker) getConnector(connectorID string) connector.Connector {
+func (s *sourceWorker) getConnector(connectorID string) connector.Connector {
 	s.cLock.RLock()
 	defer s.cLock.RUnlock()
 	rc, ok := s.connectorWorker[connectorID]
@@ -137,7 +121,7 @@ func (s *worker) getConnector(connectorID string) connector.Connector {
 	return rc.GetConnector()
 }
 
-func (s *worker) RegisterConnector(connectorID string, cfgBytes []byte) error {
+func (s *sourceWorker) RegisterConnector(connectorID string, cfgBytes []byte) error {
 	s.cLock.Lock()
 	defer s.cLock.Unlock()
 	if !s.running {
@@ -160,7 +144,7 @@ func (s *worker) RegisterConnector(connectorID string, cfgBytes []byte) error {
 	return nil
 }
 
-func (s *worker) RemoveConnector(connectorID string) {
+func (s *sourceWorker) RemoveConnector(connectorID string) {
 	s.cLock.Lock()
 	defer s.cLock.Unlock()
 	if !s.running {

@@ -32,7 +32,7 @@ type HttpSource interface {
 }
 
 type httpSourceWorker struct {
-	*worker
+	*sourceWorker
 	server    *http.Server
 	routersMu sync.RWMutex
 
@@ -45,8 +45,8 @@ func newHttpSourceWorker(cfgCtor func() config.SourceConfigAccessor,
 		return httpSourceCtor()
 	})
 	source := &httpSourceWorker{
-		worker:   w,
-		services: map[string]http.Handler{},
+		sourceWorker: w,
+		services:     map[string]http.Handler{},
 	}
 	return source
 }
@@ -69,7 +69,7 @@ func (s *httpSourceWorker) Start(ctx context.Context) error {
 		}
 		log.Info("http server stopped", nil)
 	}()
-	return s.worker.Start(ctx)
+	return s.sourceWorker.Start(ctx)
 }
 
 func (s *httpSourceWorker) Stop() error {
@@ -78,7 +78,7 @@ func (s *httpSourceWorker) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	s.server.SetKeepAlivesEnabled(false)
-	_ = s.worker.Stop()
+	_ = s.sourceWorker.Stop()
 	return s.server.Shutdown(ctx)
 }
 
@@ -94,11 +94,11 @@ func (s *httpSourceWorker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpSourceWorker) RegisterConnector(connectorID string, config []byte) error {
-	err := s.worker.RegisterConnector(connectorID, config)
+	err := s.sourceWorker.RegisterConnector(connectorID, config)
 	if err != nil {
 		return err
 	}
-	source := s.worker.getConnector(connectorID)
+	source := s.sourceWorker.getConnector(connectorID)
 	if source == nil {
 		return nil
 	}
@@ -109,7 +109,7 @@ func (s *httpSourceWorker) RegisterConnector(connectorID string, config []byte) 
 }
 
 func (s *httpSourceWorker) RemoveConnector(connectorID string) {
-	s.worker.RemoveConnector(connectorID)
+	s.sourceWorker.RemoveConnector(connectorID)
 	s.routersMu.Lock()
 	defer s.routersMu.Unlock()
 	delete(s.services, "/"+connectorID)
