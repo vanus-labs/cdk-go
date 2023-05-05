@@ -15,6 +15,8 @@
 package connector
 
 import (
+	"net/http"
+
 	ce "github.com/cloudevents/sdk-go/v2"
 )
 
@@ -37,4 +39,9 @@ func NewTuple(event *ce.Event, success func(), failed func(error)) *Tuple {
 		Success: success,
 		Failed:  failed,
 	}
+}
+
+type HTTPSource interface {
+	Source
+	http.Handler
 }

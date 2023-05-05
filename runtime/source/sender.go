@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package worker
+package source
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 	"github.com/vanus-labs/cdk-go/util"
 )
 
-type SourceWorker struct {
+type sourceSender struct {
 	cfg      config.SourceConfigAccessor
 	source   connector.Source
 	ceClient ce.Client
@@ -41,18 +41,18 @@ type SourceWorker struct {
 	cancel   context.CancelFunc
 }
 
-func NewSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) *SourceWorker {
-	return &SourceWorker{
+func newSourceSender(cfg config.SourceConfigAccessor, source connector.Source) *sourceSender {
+	return &sourceSender{
 		cfg:    cfg,
 		source: source,
 	}
 }
 
-func (w *SourceWorker) GetConnector() connector.Connector {
+func (w *sourceSender) GetSource() connector.Source {
 	return w.source
 }
 
-func (w *SourceWorker) Start(ctx context.Context) error {
+func (w *sourceSender) Start(ctx context.Context) error {
 	if w.cfg.GetVanusConfig() != nil {
 		w.sd = sender.NewVanusSender(w.cfg.GetVanusConfig().Eventbus, w.cfg.GetVanusConfig().Eventbus)
 	} else {
@@ -80,7 +80,7 @@ func (w *SourceWorker) Start(ctx context.Context) error {
 	return nil
 }
 
-func (w *SourceWorker) execute(ctx context.Context) {
+func (w *sourceSender) execute(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -94,7 +94,7 @@ func (w *SourceWorker) execute(ctx context.Context) {
 	}
 }
 
-func (w *SourceWorker) send(ctx context.Context) {
+func (w *sourceSender) send(ctx context.Context) {
 	t := time.NewTimer(200 * time.Microsecond)
 	for {
 		select {
@@ -106,20 +106,20 @@ func (w *SourceWorker) send(ctx context.Context) {
 	}
 }
 
-func (w *SourceWorker) needAttempt(attempt int) bool {
+func (w *sourceSender) needAttempt(attempt int) bool {
 	if w.cfg.GetAttempts() <= 0 {
 		return true
 	}
 	return attempt < w.cfg.GetAttempts()
 }
 
-func (w *SourceWorker) Stop() error {
+func (w *sourceSender) Stop() error {
 	w.cancel()
 	w.wg.Wait()
 	return w.source.Destroy()
 }
 
-func (w *SourceWorker) doSend(force bool) {
+func (w *sourceSender) doSend(force bool) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 	if len(w.current) < w.cfg.GetBatchSize() && !force {

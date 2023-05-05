@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package source
 
 import (
 	"context"
@@ -26,11 +26,6 @@ import (
 	"github.com/vanus-labs/cdk-go/log"
 )
 
-type HttpSource interface {
-	connector.Source
-	http.Handler
-}
-
 type httpSourceWorker struct {
 	*sourceWorker
 	server    *http.Server
@@ -39,9 +34,9 @@ type httpSourceWorker struct {
 	services map[string]http.Handler
 }
 
-func newHttpSourceWorker(cfgCtor func() config.SourceConfigAccessor,
-	httpSourceCtor func() HttpSource) Worker {
-	w := newSourceWorker(cfgCtor, func() connector.Source {
+func NewHttpSourceWorker(cfgCtor func() config.SourceConfigAccessor,
+	httpSourceCtor func() connector.HTTPSource) *httpSourceWorker {
+	w := NewSourceWorker(cfgCtor, func() connector.Source {
 		return httpSourceCtor()
 	})
 	source := &httpSourceWorker{

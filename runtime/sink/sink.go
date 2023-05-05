@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package worker
+package sink
 
 import (
 	"context"
@@ -36,7 +36,7 @@ import (
 	"github.com/vanus-labs/cdk-go/runtime/sender"
 )
 
-type SinkWorker struct {
+type sinkReceiver struct {
 	cfg    config.SinkConfigAccessor
 	sink   connector.Sink
 	wg     sync.WaitGroup
@@ -44,10 +44,10 @@ type SinkWorker struct {
 	cancel context.CancelFunc
 }
 
-// Make sure the SinkWorker implements the cloudevents.CloudEventsServer.
-var _ cloudevents.CloudEventsServer = (*SinkWorker)(nil)
+// Make sure the sinkReceiver implements the cloudevents.CloudEventsServer.
+var _ cloudevents.CloudEventsServer = (*sinkReceiver)(nil)
 
-func (w *SinkWorker) Send(ctx context.Context, event *cloudevents.BatchEvent) (*emptypb.Empty, error) {
+func (w *sinkReceiver) Send(ctx context.Context, event *cloudevents.BatchEvent) (*emptypb.Empty, error) {
 	pbEvents := event.Events.Events
 	events := make([]*ce.Event, len(pbEvents))
 	for idx := range pbEvents {
@@ -68,14 +68,14 @@ func (w *SinkWorker) Send(ctx context.Context, event *cloudevents.BatchEvent) (*
 	return &emptypb.Empty{}, nil
 }
 
-func NewSinkWorker(cfg config.SinkConfigAccessor, sink connector.Sink) *SinkWorker {
-	return &SinkWorker{
+func NewSinkWorker(cfg config.SinkConfigAccessor, sink connector.Sink) *sinkReceiver {
+	return &sinkReceiver{
 		cfg:  cfg,
 		sink: sink,
 	}
 }
 
-func (w *SinkWorker) Start(ctx context.Context) error {
+func (w *sinkReceiver) Start(ctx context.Context) error {
 	w.ctx, w.cancel = context.WithCancel(ctx)
 	port := w.cfg.GetPort()
 	if port > 0 {
@@ -141,7 +141,7 @@ func (w *SinkWorker) Start(ctx context.Context) error {
 	return nil
 }
 
-func (w *SinkWorker) receive(ctx context.Context, event ce.Event) ce.Result {
+func (w *sinkReceiver) receive(ctx context.Context, event ce.Event) ce.Result {
 	result := w.sink.Arrived(ctx, &event)
 	err := result.ConvertToCeResult()
 	if err != nil {
@@ -152,11 +152,11 @@ func (w *SinkWorker) receive(ctx context.Context, event ce.Event) ce.Result {
 	return err
 }
 
-func (w *SinkWorker) GetConnector() connector.Connector {
+func (w *sinkReceiver) GetConnector() connector.Connector {
 	return w.sink
 }
 
-func (w *SinkWorker) Stop() error {
+func (w *sinkReceiver) Stop() error {
 	w.cancel()
 	w.wg.Wait()
 	return w.sink.Destroy()

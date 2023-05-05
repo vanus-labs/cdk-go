@@ -21,6 +21,7 @@ import (
 
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/connector"
+	"github.com/vanus-labs/cdk-go/runtime/source"
 )
 
 type SourceConfigConstructor func() config.SourceConfigAccessor
@@ -44,12 +45,12 @@ func RunSink(component string, cfgCtor SinkConfigConstructor, sinkCtor func() co
 }
 
 func RunSource(component string, cfgCtor SourceConfigConstructor, sourceCtor func() connector.Source) {
-	source := newSourceWorker(cfgCtor, sourceCtor)
+	source := source.NewSourceWorker(cfgCtor, sourceCtor)
 	runSource(component, source)
 }
 
-func RunHttpSource(component string, cfgCtor SourceConfigConstructor, sourceCtor func() HttpSource) {
-	httpSource := newHttpSourceWorker(cfgCtor, sourceCtor)
+func RunHttpSource(component string, cfgCtor SourceConfigConstructor, sourceCtor func() connector.HTTPSource) {
+	httpSource := source.NewHttpSourceWorker(cfgCtor, sourceCtor)
 	runSource(component, httpSource)
 }
 
