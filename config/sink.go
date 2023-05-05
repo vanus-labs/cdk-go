@@ -47,7 +47,7 @@ func (c *SinkConfig) Validate() error {
 	return c.Config.Validate()
 }
 
-func (c *SinkConfig) ConnectorType() Type {
+func (c *SinkConfig) ConnectorKind() Kind {
 	return SinkConnector
 }
 

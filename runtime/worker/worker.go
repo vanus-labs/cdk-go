@@ -17,13 +17,7 @@ package worker
 import (
 	"context"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/pkg/errors"
-
-	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/connector"
-	"github.com/vanus-labs/cdk-go/log"
-	"github.com/vanus-labs/cdk-go/util"
 )
 
 //func runConnector(cfg config.ConfigAccessor, c connector.Connector) error {
@@ -73,37 +67,8 @@ import (
 //	return nil
 //}
 
-func NewConfig(ctx context.Context, config []byte, cfg config.ConfigAccessor) error {
-	err := util.ParseConfig(config, cfg)
-	if err != nil {
-		log.Error("parse config error", map[string]interface{}{
-			log.KeyError: err,
-		})
-		return errors.Wrap(err, "parse config error")
-	}
-	err = validator.New().StructCtx(ctx, cfg)
-	if err != nil {
-		return errors.Wrap(err, "config tag validator has error")
-	}
-	err = cfg.Validate()
-	if err != nil {
-		return errors.Wrap(err, "config validate error")
-	}
-	return nil
-}
-
-func NewSourceWorker(ctx context.Context, cfg config.SourceConfigAccessor, c connector.Source) (*SourceWorker, error) {
-	err := c.Initialize(ctx, cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "source connector initialize failed")
-	}
-	return newSourceWorker(cfg, c), nil
-}
-
-func NewSinkWorker(ctx context.Context, cfg config.SinkConfigAccessor, c connector.Sink) (*SinkWorker, error) {
-	err := c.Initialize(ctx, cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "sink connector initialize failed")
-	}
-	return newSinkWorker(cfg, c), nil
+type Connector interface {
+	Start(ctx context.Context) error
+	Stop() error
+	GetConnector() connector.Connector
 }

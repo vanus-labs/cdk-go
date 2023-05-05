@@ -55,7 +55,7 @@ func (c *SourceConfig) GetBatchSize() int {
 	return c.BatchSize
 }
 
-func (c *SourceConfig) ConnectorType() Type {
+func (c *SourceConfig) ConnectorKind() Kind {
 	return SourceConnector
 }
 

@@ -17,7 +17,6 @@ package worker
 import (
 	"context"
 	"errors"
-	"os"
 	"sync"
 	"time"
 
@@ -29,14 +28,6 @@ import (
 	"github.com/vanus-labs/cdk-go/runtime/sender"
 	"github.com/vanus-labs/cdk-go/util"
 )
-
-func isShare() bool {
-	runtime := os.Getenv("CONNECTOR_RUNTIME")
-	if runtime == "k8s" {
-		return true
-	}
-	return false
-}
 
 type SourceWorker struct {
 	cfg      config.SourceConfigAccessor
@@ -50,14 +41,14 @@ type SourceWorker struct {
 	cancel   context.CancelFunc
 }
 
-func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) *SourceWorker {
+func NewSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) *SourceWorker {
 	return &SourceWorker{
 		cfg:    cfg,
 		source: source,
 	}
 }
 
-func (w *SourceWorker) GetSource() connector.Source {
+func (w *SourceWorker) GetConnector() connector.Connector {
 	return w.source
 }
 

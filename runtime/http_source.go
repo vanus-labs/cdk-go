@@ -21,31 +21,41 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vanus-labs/cdk-go/config"
+	"github.com/vanus-labs/cdk-go/connector"
 	"github.com/vanus-labs/cdk-go/log"
 )
 
-type httpSource struct {
-	CommonSource *commonSource
-	server       *http.Server
-	routersMu    sync.RWMutex
+type HttpSource interface {
+	connector.Source
+	http.Handler
+}
+
+type httpSourceWorker struct {
+	*worker
+	server    *http.Server
+	routersMu sync.RWMutex
 
 	services map[string]http.Handler
 }
 
-func NewHttpSource(s *commonSource) *httpSource {
-	source := &httpSource{
-		CommonSource: s,
-		services:     map[string]http.Handler{},
+func newHttpSourceWorker(cfgCtor func() config.SourceConfigAccessor,
+	httpSourceCtor func() HttpSource) Worker {
+	w := newSourceWorker(cfgCtor, func() connector.Source {
+		return httpSourceCtor()
+	})
+	source := &httpSourceWorker{
+		worker:   w,
+		services: map[string]http.Handler{},
 	}
 	return source
 }
 
-func (s *httpSource) getPort() int {
+func (s *httpSourceWorker) getPort() int {
 	return 8080
 }
 
-func (s *httpSource) Start(ctx context.Context) error {
-	s.CommonSource.Start(ctx)
+func (s *httpSourceWorker) Start(ctx context.Context) error {
 	s.server = &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.getPort()),
 		Handler: s,
@@ -59,20 +69,20 @@ func (s *httpSource) Start(ctx context.Context) error {
 		}
 		log.Info("http server stopped", nil)
 	}()
-	return nil
+	return s.worker.Start(ctx)
 }
 
-func (s *httpSource) Stop() error {
+func (s *httpSourceWorker) Stop() error {
 	s.routersMu.Lock()
 	defer s.routersMu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	s.server.SetKeepAlivesEnabled(false)
-	s.CommonSource.Stop()
+	_ = s.worker.Stop()
 	return s.server.Shutdown(ctx)
 }
 
-func (s *httpSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *httpSourceWorker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.routersMu.RLock()
 	handler, ok := s.services[r.URL.Path]
 	s.routersMu.RUnlock()
@@ -83,13 +93,12 @@ func (s *httpSource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.ServeHTTP(w, r)
 }
 
-func (s *httpSource) RegisterSource(connectorID string, config []byte) error {
-	err := s.CommonSource.RegisterSource(connectorID, config)
+func (s *httpSourceWorker) RegisterConnector(connectorID string, config []byte) error {
+	err := s.worker.RegisterConnector(connectorID, config)
 	if err != nil {
 		return err
 	}
-	w := s.CommonSource.getSource(connectorID)
-	source := w.GetSource()
+	source := s.worker.getConnector(connectorID)
 	if source == nil {
 		return nil
 	}
@@ -99,8 +108,8 @@ func (s *httpSource) RegisterSource(connectorID string, config []byte) error {
 	return nil
 }
 
-func (s *httpSource) RemoveSource(connectorID string) {
-	s.CommonSource.RemoveSource(connectorID)
+func (s *httpSourceWorker) RemoveConnector(connectorID string) {
+	s.worker.RemoveConnector(connectorID)
 	s.routersMu.Lock()
 	defer s.routersMu.Unlock()
 	delete(s.services, "/"+connectorID)

@@ -24,26 +24,14 @@ import (
 )
 
 type SourceConfigConstructor func() config.SourceConfigAccessor
-type SourceConstructor func() connector.Source
 
 type SinkConfigConstructor func() config.SinkConfigAccessor
-type SinkConstructor func() connector.Sink
 
-type Connector interface {
+type Worker interface {
 	Start(ctx context.Context) error
 	Stop() error
-}
-
-type Source interface {
-	Connector
-	RegisterSource(connectorID string, config []byte) error
-	RemoveSource(connectorID string)
-}
-
-type Sink interface {
-	Connector
-	RegisterSink(connectorID string, config []byte) error
-	RemoveSink(connectorID string)
+	RegisterConnector(connectorID string, config []byte) error
+	RemoveConnector(connectorID string)
 }
 
 func isShare() bool {
@@ -51,22 +39,30 @@ func isShare() bool {
 	return strings.ToLower(runtime) == "k8s"
 }
 
-func RunSource(name string, cfgCtor SourceConfigConstructor, sourceCtor SourceConstructor) {
-	share := isShare()
-	source := NewCommonSource(cfgCtor, sourceCtor)
-	if !share {
-		runStandaloneSource(name, source)
-		return
-	}
-	runShareSource(name, source)
+func RunSink(component string, cfgCtor SinkConfigConstructor, sinkCtor func() connector.Sink) {
+	sink := newSinkWorker(cfgCtor, sinkCtor)
+	runConnector(config.SinkConnector, component, sink)
 }
 
-func RunHttpSource(name string, cfgCtor SourceConfigConstructor, sourceCtor SourceConstructor) {
+func RunSource(component string, cfgCtor SourceConfigConstructor, sourceCtor func() connector.Source) {
+	source := newSourceWorker(cfgCtor, sourceCtor)
+	runSource(component, source)
+}
+
+func RunHttpSource(component string, cfgCtor SourceConfigConstructor, sourceCtor func() HttpSource) {
+	httpSource := newHttpSourceWorker(cfgCtor, sourceCtor)
+	runSource(component, httpSource)
+}
+
+func runSource(component string, w Worker) {
+	runConnector(config.SourceConnector, component, w)
+}
+
+func runConnector(kind config.Kind, component string, w Worker) {
 	share := isShare()
-	source := NewHttpSource(NewCommonSource(cfgCtor, sourceCtor))
 	if !share {
-		runStandaloneSource(name, source)
+		runStandaloneConnector(string(kind)+"-"+component, w)
 		return
 	}
-	runShareSource(name, source)
+	runShareConnector(kind, component, w)
 }

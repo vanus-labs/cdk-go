@@ -14,17 +14,17 @@
 
 package config
 
-type Type string
+type Kind string
 
 const (
-	SinkConnector   Type = "sink"
-	SourceConnector Type = "source"
+	SinkConnector   Kind = "sink"
+	SourceConnector Kind = "source"
 )
 
 type SecretAccessor interface{}
 
 type ConfigAccessor interface {
-	ConnectorType() Type
+	ConnectorKind() Kind
 	Validate() error
 	// GetSecret SecretAccessor implement type must be pointer
 	GetSecret() SecretAccessor

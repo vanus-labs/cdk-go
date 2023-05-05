@@ -68,7 +68,7 @@ func (w *SinkWorker) Send(ctx context.Context, event *cloudevents.BatchEvent) (*
 	return &emptypb.Empty{}, nil
 }
 
-func newSinkWorker(cfg config.SinkConfigAccessor, sink connector.Sink) *SinkWorker {
+func NewSinkWorker(cfg config.SinkConfigAccessor, sink connector.Sink) *SinkWorker {
 	return &SinkWorker{
 		cfg:  cfg,
 		sink: sink,
@@ -150,6 +150,10 @@ func (w *SinkWorker) receive(ctx context.Context, event ce.Event) ce.Result {
 		})
 	}
 	return err
+}
+
+func (w *SinkWorker) GetConnector() connector.Connector {
+	return w.sink
 }
 
 func (w *SinkWorker) Stop() error {

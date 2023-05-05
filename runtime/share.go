@@ -15,38 +15,39 @@
 package runtime
 
 import (
+	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/util"
 	"github.com/vanus-labs/vanus-connect-runtime/pkg/controller"
 )
 
-func runShareSource(name string, source Source) {
+func runShareConnector(connectorKind config.Kind, connectorType string, worker Worker) {
 	ctx := util.SignalContext()
-	source.Start(ctx)
+	worker.Start(ctx)
 	newConnector := func(connectorID, config string) error {
-		return source.RegisterSource(connectorID, []byte(config))
+		return worker.RegisterConnector(connectorID, []byte(config))
 	}
 	ctrl, err := controller.NewController(controller.FilterConnector{
-		Kind: "source",
-		Type: name,
+		Kind: string(connectorKind),
+		Type: connectorType,
 	}, controller.ConnectorHandlerFuncs{
 		AddFunc:    newConnector,
 		UpdateFunc: newConnector,
 		DeleteFunc: func(connectorID string) error {
-			source.RemoveSource(connectorID)
+			worker.RemoveConnector(connectorID)
 			return nil
 		},
 	})
 	if err != nil {
-		panic("new source connector controller failed")
+		panic("new connector controller failed")
 	}
 	go ctrl.Run(ctx)
 	<-ctx.Done()
 	log.Info("received system signal, beginning shutdown", map[string]interface{}{
-		"name": name,
+		"connector-type": connectorType,
 	})
-	source.Stop()
+	worker.Stop()
 	log.Info("connector shutdown graceful", map[string]interface{}{
-		"name": name,
+		"connector-type": connectorType,
 	})
 }
