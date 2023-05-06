@@ -15,50 +15,58 @@
 package runtime
 
 import (
-	"context"
 	"os"
 	"strings"
 
 	"github.com/vanus-labs/cdk-go/config"
-	"github.com/vanus-labs/cdk-go/connector"
+	"github.com/vanus-labs/cdk-go/runtime/common"
+	"github.com/vanus-labs/cdk-go/runtime/sink"
 	"github.com/vanus-labs/cdk-go/runtime/source"
 )
-
-type SourceConfigConstructor func() config.SourceConfigAccessor
-
-type SinkConfigConstructor func() config.SinkConfigAccessor
-
-type Worker interface {
-	Start(ctx context.Context) error
-	Stop() error
-	RegisterConnector(connectorID string, config []byte) error
-	RemoveConnector(connectorID string)
-}
 
 func isShare() bool {
 	runtime := os.Getenv("CONNECTOR-RUNTIME")
 	return strings.ToLower(runtime) == "share"
 }
 
-func RunSink(component string, cfgCtor SinkConfigConstructor, sinkCtor func() connector.Sink) {
-	// todo
+func RunSink(component string, cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor) {
+	share := isShare()
+	var worker common.Worker
+	if share {
+		worker = sink.NewMtSinkWorker(cfgCtor, sinkCtor)
+	} else {
+		worker = sink.NewSinkWorker(cfgCtor, sinkCtor)
+	}
+	runConnector(config.SinkConnector, component, worker)
 }
 
-func RunSource(component string, cfgCtor SourceConfigConstructor, sourceCtor func() connector.Source) {
-	source := source.NewSourceWorker(cfgCtor, sourceCtor)
-	runSource(component, source)
+func RunSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceConstructor) {
+	share := isShare()
+	var worker common.Worker
+	if share {
+		worker = source.NewMtSourceWorker(cfgCtor, sourceCtor)
+	} else {
+		worker = source.NewSourceWorker(cfgCtor, sourceCtor)
+	}
+	runSource(component, worker)
 }
 
-func RunHttpSource(component string, cfgCtor SourceConfigConstructor, sourceCtor func() connector.HTTPSource) {
-	httpSource := source.NewHttpSourceWorker(cfgCtor, sourceCtor)
-	runSource(component, httpSource)
+func RunHttpSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.HTTPSourceConstructor) {
+	share := isShare()
+	var worker common.Worker
+	if share {
+		worker = source.NewMtHTTPSourceWorker(cfgCtor, sourceCtor)
+	} else {
+		worker = source.NewHTTPSourceWorker(cfgCtor, sourceCtor)
+	}
+	runSource(component, worker)
 }
 
-func runSource(component string, w Worker) {
+func runSource(component string, w common.Worker) {
 	runConnector(config.SourceConnector, component, w)
 }
 
-func runConnector(kind config.Kind, component string, w Worker) {
+func runConnector(kind config.Kind, component string, w common.Worker) {
 	share := isShare()
 	if !share {
 		runStandaloneConnector(string(kind)+"-"+component, w)

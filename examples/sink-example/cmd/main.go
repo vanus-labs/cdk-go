@@ -21,5 +21,5 @@ import (
 )
 
 func main() {
-	cdkgo.RunSink(internal.NewExampleConfig, internal.NewExampleSink)
+	cdkgo.RunSink("example", internal.NewExampleConfig, internal.NewExampleSink)
 }

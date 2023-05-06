@@ -52,14 +52,11 @@ func (w *sourceSender) GetSource() connector.Source {
 	return w.source
 }
 
-func (w *sourceSender) Start(ctx context.Context) error {
+func (w *sourceSender) Start(ctx context.Context) {
 	if w.cfg.GetVanusConfig() != nil {
 		w.sd = sender.NewVanusSender(w.cfg.GetVanusConfig().Eventbus, w.cfg.GetVanusConfig().Eventbus)
 	} else {
 		w.sd = sender.NewHTTPSender(w.cfg.GetTarget())
-	}
-	if w.sd == nil {
-		return errors.New("failed to init cloudevents sender")
 	}
 	w.ctx, w.cancel = context.WithCancel(ctx)
 	w.wg.Add(1)
@@ -77,7 +74,6 @@ func (w *sourceSender) Start(ctx context.Context) error {
 	log.Info("the connector started", map[string]interface{}{
 		log.ConnectorName: w.source.Name(),
 	})
-	return nil
 }
 
 func (w *sourceSender) execute(ctx context.Context) {
@@ -85,7 +81,10 @@ func (w *sourceSender) execute(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case tuple := <-w.source.Chan():
+		case tuple, ok := <-w.source.Chan():
+			if ok {
+				return
+			}
 			w.mutex.RLock()
 			w.current = append(w.current, tuple)
 			w.mutex.RUnlock()
@@ -95,7 +94,8 @@ func (w *sourceSender) execute(ctx context.Context) {
 }
 
 func (w *sourceSender) send(ctx context.Context) {
-	t := time.NewTimer(200 * time.Microsecond)
+	t := time.NewTicker(200 * time.Microsecond)
+	defer t.Stop()
 	for {
 		select {
 		case <-ctx.Done():

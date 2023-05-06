@@ -15,15 +15,26 @@
 package runtime
 
 import (
+	"os"
+
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/log"
+	"github.com/vanus-labs/cdk-go/runtime/common"
 	"github.com/vanus-labs/cdk-go/util"
 	"github.com/vanus-labs/vanus-connect-runtime/pkg/controller"
 )
 
-func runShareConnector(connectorKind config.Kind, connectorType string, worker Worker) {
+func runShareConnector(connectorKind config.Kind, connectorType string, worker common.Worker) {
 	ctx := util.SignalContext()
-	worker.Start(ctx)
+	err := worker.Start(ctx)
+	if err != nil {
+		log.Error("worker start error", map[string]interface{}{
+			"kind":       connectorKind,
+			"type":       connectorType,
+			log.KeyError: err,
+		})
+		os.Exit(-1)
+	}
 	newConnector := func(connectorID, config string) error {
 		return worker.RegisterConnector(connectorID, []byte(config))
 	}
@@ -44,10 +55,12 @@ func runShareConnector(connectorKind config.Kind, connectorType string, worker W
 	go ctrl.Run(ctx)
 	<-ctx.Done()
 	log.Info("received system signal, beginning shutdown", map[string]interface{}{
-		"connector-type": connectorType,
+		"kind": connectorKind,
+		"type": connectorType,
 	})
 	worker.Stop()
 	log.Info("connector shutdown graceful", map[string]interface{}{
-		"connector-type": connectorType,
+		"kind": connectorKind,
+		"type": connectorType,
 	})
 }

@@ -16,139 +16,53 @@ package source
 
 import (
 	"context"
-	"sync"
-
-	"github.com/go-playground/validator/v10"
-	"github.com/pkg/errors"
 
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/connector"
-	"github.com/vanus-labs/cdk-go/log"
-	"github.com/vanus-labs/cdk-go/util"
+	"github.com/vanus-labs/cdk-go/runtime/common"
 )
 
 type sourceWorker struct {
-	cfgCtor    func() config.SourceConfigAccessor
-	sourceCtor func() connector.Source
-	senders    map[string]*sourceSender
-	cLock      sync.RWMutex
-	ctx        context.Context
-	cancel     context.CancelFunc
-	running    bool
+	cfg    config.SourceConfigAccessor
+	source connector.Source
+	sender *sourceSender
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func NewSourceWorker(cfgCtor func() config.SourceConfigAccessor,
-	sourceCtor func() connector.Source) *sourceWorker {
+var _ common.Worker = &sourceWorker{}
+
+func NewSourceWorker(cfgCtor common.SourceConfigConstructor,
+	sourceCtor common.SourceConstructor) *sourceWorker {
 	return &sourceWorker{
-		cfgCtor:    cfgCtor,
-		sourceCtor: sourceCtor,
+		cfg:    cfgCtor(),
+		source: sourceCtor(),
 	}
 }
 
-func (s *sourceWorker) Start(ctx context.Context) error {
-	s.cLock.Lock()
-	defer s.cLock.Unlock()
-	s.ctx, s.cancel = context.WithCancel(ctx)
-	s.running = true
+func (w *sourceWorker) Start(ctx context.Context) error {
+	w.ctx, w.cancel = context.WithCancel(ctx)
 	return nil
 }
 
-func (s *sourceWorker) Stop() error {
-	s.cLock.Lock()
-	s.running = false
-	s.cLock.Unlock()
-	s.cancel()
-	var wg sync.WaitGroup
-	for id := range s.senders {
-		wg.Add(1)
-		go func(id string) {
-			defer wg.Done()
-			err := s.senders[id].Stop()
-			log.Info("connector stop", map[string]interface{}{
-				"id":         id,
-				log.KeyError: err,
-			})
-		}(id)
-	}
-	wg.Wait()
-	return nil
+func (w *sourceWorker) Stop() error {
+	return w.sender.Stop()
 }
 
-func (s *sourceWorker) initConfig(config []byte, cfg config.ConfigAccessor) error {
-	err := util.ParseConfig(config, cfg)
-	if err != nil {
-		return errors.Wrap(err, "parse config error")
-	}
-	err = validator.New().StructCtx(s.ctx, cfg)
-	if err != nil {
-		return errors.Wrap(err, "config tag validator has error")
-	}
-	err = cfg.Validate()
-	if err != nil {
-		return errors.Wrap(err, "config validate error")
-	}
-	return nil
+func (w *sourceWorker) getSource() connector.Source {
+	return w.sender.GetSource()
 }
 
-func (s *sourceWorker) newSender(cfg config.SourceConfigAccessor) (*sourceSender, error) {
-	source := s.sourceCtor()
-	err := source.Initialize(s.ctx, cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "source connector initialize failed")
-	}
-	wc := newSourceSender(cfg, source)
-	return wc, nil
-}
-
-func (s *sourceWorker) getConnector(connectorID string) connector.Source {
-	s.cLock.RLock()
-	defer s.cLock.RUnlock()
-	rc, ok := s.senders[connectorID]
-	if !ok {
-		return nil
-	}
-	return rc.GetSource()
-}
-
-func (s *sourceWorker) RegisterConnector(connectorID string, cfgBytes []byte) error {
-	s.cLock.Lock()
-	defer s.cLock.Unlock()
-	if !s.running {
-		return nil
-	}
-	cfg := s.cfgCtor()
-	err := s.initConfig(cfgBytes, cfg)
+func (w *sourceWorker) RegisterConnector(_ string, config []byte) error {
+	c := common.Connector{Config: w.cfg, Connector: w.source}
+	err := c.InitConnector(w.ctx, config)
 	if err != nil {
 		return err
 	}
-	wc, err := s.newSender(cfg)
-	if err != nil {
-		return err
-	}
-	err = wc.Start(s.ctx)
-	if err != nil {
-		return err
-	}
-	s.senders[connectorID] = wc
 	return nil
 }
 
-func (s *sourceWorker) RemoveConnector(connectorID string) {
-	s.cLock.Lock()
-	defer s.cLock.Unlock()
-	if !s.running {
-		return
-	}
-	wc, ok := s.senders[connectorID]
-	if !ok {
-		return
-	}
-	err := wc.Stop()
-	if err != nil {
-		log.Warning("connector stop failed", map[string]interface{}{
-			log.KeyError:   err,
-			"connector_id": connectorID,
-		})
-	}
-	delete(s.senders, connectorID)
+func (w *sourceWorker) RemoveConnector(connectorID string) {
+	panic("not support")
 }

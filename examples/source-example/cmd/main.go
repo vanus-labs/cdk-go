@@ -21,5 +21,5 @@ import (
 )
 
 func main() {
-	cdkgo.RunSource(internal.NewExampleConfig, internal.NewExampleSource)
+	cdkgo.RunSource("example", internal.NewExampleConfig, internal.NewExampleSource)
 }

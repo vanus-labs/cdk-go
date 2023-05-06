@@ -41,6 +41,8 @@ var (
 	RunSource     = runtime.RunSource
 	RunHttpSource = runtime.RunHttpSource
 
+	RunSink = runtime.RunSink
+
 	SuccessResult = connector.Success
 	NewResult     = connector.NewResult
 
