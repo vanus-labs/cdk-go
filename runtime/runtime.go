@@ -24,41 +24,23 @@ import (
 	"github.com/vanus-labs/cdk-go/runtime/source"
 )
 
-func isShare() bool {
+func isMulti() bool {
 	runtime := os.Getenv("CONNECTOR-RUNTIME")
-	return strings.ToLower(runtime) == "share"
+	return strings.ToLower(runtime) == "multi"
 }
 
 func RunSink(component string, cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor) {
-	share := isShare()
-	var worker common.Worker
-	if share {
-		worker = sink.NewMtSinkWorker(cfgCtor, sinkCtor)
-	} else {
-		worker = sink.NewSinkWorker(cfgCtor, sinkCtor)
-	}
+	worker := sink.NewSinkWorker(cfgCtor, sinkCtor)
 	runConnector(config.SinkConnector, component, worker)
 }
 
 func RunSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceConstructor) {
-	share := isShare()
-	var worker common.Worker
-	if share {
-		worker = source.NewMtSourceWorker(cfgCtor, sourceCtor)
-	} else {
-		worker = source.NewSourceWorker(cfgCtor, sourceCtor)
-	}
+	worker := source.NewSourceWorker(cfgCtor, sourceCtor)
 	runSource(component, worker)
 }
 
 func RunHttpSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.HTTPSourceConstructor) {
-	share := isShare()
-	var worker common.Worker
-	if share {
-		worker = source.NewMtHTTPSourceWorker(cfgCtor, sourceCtor)
-	} else {
-		worker = source.NewHTTPSourceWorker(cfgCtor, sourceCtor)
-	}
+	worker := source.NewHTTPSourceWorker(cfgCtor, sourceCtor)
 	runSource(component, worker)
 }
 
@@ -67,10 +49,10 @@ func runSource(component string, w common.Worker) {
 }
 
 func runConnector(kind config.Kind, component string, w common.Worker) {
-	share := isShare()
-	if !share {
+	multi := isMulti()
+	if !multi {
 		runStandaloneConnector(string(kind)+"-"+component, w)
 		return
 	}
-	runShareConnector(kind, component, w)
+	runMultiConnector(kind, component, w)
 }

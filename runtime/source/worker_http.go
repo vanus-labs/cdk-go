@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/vanus-labs/cdk-go/connector"
 	"github.com/vanus-labs/cdk-go/runtime/common"
@@ -57,12 +58,21 @@ func (w *httpSourceWorker) Start(ctx context.Context) error {
 	return nil
 }
 
-func (w *httpSourceWorker) getHandler() http.Handler {
-	source := w.getSource()
+func (w *httpSourceWorker) getHandler(connectorID string) http.Handler {
+	source := w.getSource(connectorID)
+	if source == nil {
+		return nil
+	}
 	return source.(http.Handler)
 }
 
 func (w *httpSourceWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	handler := w.getHandler()
+	connectorID := strings.TrimPrefix(strings.TrimSuffix(req.RequestURI, "/"), "/")
+	handler := w.getHandler(connectorID)
+	if handler == nil {
+		writer.WriteHeader(http.StatusNotFound)
+		writer.Write([]byte("connectorID invalid"))
+		return
+	}
 	handler.ServeHTTP(writer, req)
 }

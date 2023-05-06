@@ -40,7 +40,7 @@ func runStandaloneConnector(name string, worker common.Worker) {
 		})
 		os.Exit(-1)
 	}
-	err = worker.RegisterConnector("standalone", cfg)
+	err = worker.RegisterConnector("", cfg)
 	if err != nil {
 		log.Error("read config file error", map[string]interface{}{
 			"name":       name,

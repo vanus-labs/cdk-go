@@ -24,7 +24,7 @@ import (
 	"github.com/vanus-labs/vanus-connect-runtime/pkg/controller"
 )
 
-func runShareConnector(connectorKind config.Kind, connectorType string, worker common.Worker) {
+func runMultiConnector(connectorKind config.Kind, connectorType string, worker common.Worker) {
 	ctx := util.SignalContext()
 	err := worker.Start(ctx)
 	if err != nil {

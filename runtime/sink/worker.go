@@ -18,50 +18,122 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
+	"sync"
 
-	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/connector"
+	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
 	"github.com/vanus-labs/cdk-go/runtime/util"
 )
 
 type sinkWorker struct {
-	cfg    config.SinkConfigAccessor
-	sink   connector.Sink
-	ctx    context.Context
-	cancel context.CancelFunc
-}
-
-func (w *sinkWorker) RegisterConnector(_ string, config []byte) error {
-	c := common.Connector{Config: w.cfg, Connector: w.sink}
-	err := c.InitConnector(w.ctx, config)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (w *sinkWorker) RemoveConnector(_ string) {
-	panic("not support")
+	cfgCtor      common.SinkConfigConstructor
+	sinkCtor     common.SinkConstructor
+	sinks        map[string]connector.Sink
+	cLock        sync.RWMutex
+	ctx          context.Context
+	cancel       context.CancelFunc
+	shuttingDown bool
 }
 
 func NewSinkWorker(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor) common.Worker {
 	return &sinkWorker{
-		cfg:  cfgCtor(),
-		sink: sinkCtor(),
+		cfgCtor:  cfgCtor,
+		sinkCtor: sinkCtor,
+		sinks:    map[string]connector.Sink{},
 	}
+}
+
+func (w *sinkWorker) getPort() int {
+	return 8080
 }
 
 func (w *sinkWorker) Start(ctx context.Context) error {
 	w.ctx, w.cancel = context.WithCancel(ctx)
-	port := w.cfg.GetPort()
 	go func() {
-		r := util.NewHTTPReceiver(port)
+		r := util.NewHTTPReceiver(w.getPort())
 		if err := r.StartListen(w.ctx, w); err != nil {
-			panic(fmt.Sprintf("cloud not listen on %d, error: %s", port, err.Error()))
+			panic(fmt.Sprintf("cloud not listen on %d, error: %s", w.getPort(), err.Error()))
 		}
 	}()
 	return nil
+}
+
+func (w *sinkWorker) Stop() error {
+	w.cLock.Lock()
+	w.shuttingDown = true
+	w.cLock.Unlock()
+	w.cancel()
+	var wg sync.WaitGroup
+	for id := range w.sinks {
+		wg.Add(1)
+		go func(id string) {
+			defer wg.Done()
+			err := w.sinks[id].Destroy()
+			log.Info("sink destroy", map[string]interface{}{
+				"connector_id": id,
+				log.KeyError:   err,
+			})
+		}(id)
+	}
+	wg.Wait()
+	return nil
+}
+
+func (w *sinkWorker) RegisterConnector(connectorID string, config []byte) error {
+	w.cLock.Lock()
+	if w.shuttingDown {
+		return nil
+	}
+	w.cLock.Unlock()
+	cfg := w.cfgCtor()
+	sink := w.sinkCtor()
+	c := common.Connector{Config: cfg, Connector: sink}
+	err := c.InitConnector(w.ctx, config)
+	if err != nil {
+		return err
+	}
+	w.addSink(connectorID, sink)
+	return nil
+}
+
+func (w *sinkWorker) RemoveConnector(connectorID string) {
+	w.cLock.Lock()
+	defer w.cLock.Unlock()
+	if w.shuttingDown {
+		return
+	}
+	sink, exist := w.sinks[connectorID]
+	if !exist {
+		return
+	}
+	log.Info("remove a connector stop it", map[string]interface{}{
+		"connector_id": connectorID,
+	})
+	sink.Destroy()
+	delete(w.sinks, connectorID)
+}
+
+func (w *sinkWorker) addSink(connectorID string, sink connector.Sink) {
+	w.cLock.Lock()
+	defer w.cLock.Unlock()
+	if _sink, exist := w.sinks[connectorID]; exist {
+		log.Info("connector exist,will stop it", map[string]interface{}{
+			"connector_id": connectorID,
+		})
+		_sink.Destroy()
+	}
+	log.Info("add a connector", map[string]interface{}{
+		"connector_id": connectorID,
+	})
+	w.sinks[connectorID] = sink
+}
+
+func (w *sinkWorker) getSink(connectorID string) connector.Sink {
+	w.cLock.RLock()
+	defer w.cLock.RUnlock()
+	return w.sinks[connectorID]
 }
 
 func (w *sinkWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
@@ -69,10 +141,12 @@ func (w *sinkWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	handHttpRequest(w.ctx, connectorModel{sink: w.sink}, writer, req)
-}
-
-func (w *sinkWorker) Stop() error {
-	w.cancel()
-	return w.sink.Destroy()
+	connectorID := strings.TrimPrefix(strings.TrimSuffix(req.RequestURI, "/"), "/")
+	sink := w.getSink(connectorID)
+	if sink == nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		writer.Write([]byte("connectorID invalid"))
+		return
+	}
+	handHttpRequest(w.ctx, connectorModel{connectorID: connectorID, sink: sink}, writer, req)
 }
