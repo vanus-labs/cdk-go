@@ -36,16 +36,12 @@ func RunSink(component string, cfgCtor common.SinkConfigConstructor, sinkCtor co
 
 func RunSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceConstructor) {
 	worker := source.NewSourceWorker(cfgCtor, sourceCtor)
-	runSource(component, worker)
+	runConnector(config.SourceConnector, component, worker)
 }
 
-func RunHttpSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.HTTPSourceConstructor) {
+func RunHTTPSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.HTTPSourceConstructor) {
 	worker := source.NewHTTPSourceWorker(cfgCtor, sourceCtor)
-	runSource(component, worker)
-}
-
-func runSource(component string, w common.Worker) {
-	runConnector(config.SourceConnector, component, w)
+	runConnector(config.SourceConnector, component, worker)
 }
 
 func runConnector(kind config.Kind, component string, w common.Worker) {

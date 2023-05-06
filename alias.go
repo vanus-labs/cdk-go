@@ -39,7 +39,7 @@ type KVStore = store.KVStore
 var (
 	NewTuple      = connector.NewTuple
 	RunSource     = runtime.RunSource
-	RunHttpSource = runtime.RunHttpSource
+	RunHttpSource = runtime.RunHTTPSource
 
 	RunSink = runtime.RunSink
 
