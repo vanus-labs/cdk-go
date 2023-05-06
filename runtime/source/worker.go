@@ -60,6 +60,8 @@ func (w *sourceWorker) RegisterConnector(_ string, config []byte) error {
 	if err != nil {
 		return err
 	}
+	w.sender = newSourceSender(w.cfg, w.source)
+	w.sender.Start(w.ctx)
 	return nil
 }
 

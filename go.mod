@@ -5,10 +5,9 @@ go 1.18
 require (
 	github.com/cloudevents/sdk-go/v2 v2.13.0
 	github.com/go-playground/validator/v10 v10.11.1
-	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
-	github.com/vanus-labs/vanus-connect-runtime v0.0.0-20230426095548-fbb11e8a9191
+	github.com/vanus-labs/vanus-connect-runtime v0.0.0-20230506105542-dd055bf9dfcf
 	go.etcd.io/etcd/client/v3 v3.5.6
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.28.1

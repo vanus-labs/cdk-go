@@ -53,12 +53,12 @@ func (w *sourceSender) GetSource() connector.Source {
 }
 
 func (w *sourceSender) Start(ctx context.Context) {
+	w.ctx, w.cancel = context.WithCancel(ctx)
 	if w.cfg.GetVanusConfig() != nil {
 		w.sd = sender.NewVanusSender(w.cfg.GetVanusConfig().Eventbus, w.cfg.GetVanusConfig().Eventbus)
 	} else {
 		w.sd = sender.NewHTTPSender(w.cfg.GetTarget())
 	}
-	w.ctx, w.cancel = context.WithCancel(ctx)
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
@@ -82,7 +82,7 @@ func (w *sourceSender) execute(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case tuple, ok := <-w.source.Chan():
-			if ok {
+			if !ok {
 				return
 			}
 			w.mutex.RLock()
