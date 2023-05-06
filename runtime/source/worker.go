@@ -83,10 +83,15 @@ func (w *sourceWorker) getSource(connectorID string) connector.Source {
 
 func (w *sourceWorker) RegisterConnector(connectorID string, config []byte) error {
 	w.cLock.Lock()
+	defer w.cLock.Unlock()
 	if w.shuttingDown {
 		return nil
 	}
-	w.cLock.Unlock()
+	log.Info("add a connector", map[string]interface{}{
+		"connector_id": connectorID,
+	})
+	// check the connector is existed,if true stop it
+	w.removeConnector(connectorID)
 	cfg := w.cfgCtor()
 	source := w.sourceCtor()
 	ctor := common.Connector{Config: cfg, Connector: source}
@@ -95,24 +100,12 @@ func (w *sourceWorker) RegisterConnector(connectorID string, config []byte) erro
 		return err
 	}
 	sender := newSourceSender(cfg, source)
-	w.addSource(connectorID, sender)
-	return nil
-}
-
-func (w *sourceWorker) addSource(connectorID string, sender *sourceSender) {
-	w.cLock.Lock()
-	defer w.cLock.Unlock()
-	if _sender, exist := w.senders[connectorID]; exist {
-		log.Info("connector exist,will stop it", map[string]interface{}{
-			"connector_id": connectorID,
-		})
-		_sender.Stop()
-	}
-	log.Info("add a connector", map[string]interface{}{
+	sender.Start(w.ctx)
+	log.Info("connector start", map[string]interface{}{
 		"connector_id": connectorID,
 	})
-	sender.Start(w.ctx)
 	w.senders[connectorID] = sender
+	return nil
 }
 
 func (w *sourceWorker) RemoveConnector(connectorID string) {
@@ -121,17 +114,25 @@ func (w *sourceWorker) RemoveConnector(connectorID string) {
 	if w.shuttingDown {
 		return
 	}
-	wc, ok := w.senders[connectorID]
-	if !ok {
-		return
-	}
 	log.Info("remove a connector", map[string]interface{}{
 		"connector_id": connectorID,
 	})
-	err := wc.Stop()
+	w.removeConnector(connectorID)
+}
+
+func (w *sourceWorker) removeConnector(connectorID string) {
+	sender, ok := w.senders[connectorID]
+	if !ok {
+		return
+	}
+	err := sender.Stop()
 	if err != nil {
 		log.Warning("connector stop failed", map[string]interface{}{
 			log.KeyError:   err,
+			"connector_id": connectorID,
+		})
+	} else {
+		log.Info("connector stop success", map[string]interface{}{
 			"connector_id": connectorID,
 		})
 	}

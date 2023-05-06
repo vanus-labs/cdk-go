@@ -83,10 +83,15 @@ func (w *sinkWorker) Stop() error {
 
 func (w *sinkWorker) RegisterConnector(connectorID string, config []byte) error {
 	w.cLock.Lock()
+	defer w.cLock.Unlock()
 	if w.shuttingDown {
 		return nil
 	}
-	w.cLock.Unlock()
+	log.Info("add a connector", map[string]interface{}{
+		"connector_id": connectorID,
+	})
+	// check the connector is existed,if true stop it
+	w.removeConnector(connectorID)
 	cfg := w.cfgCtor()
 	sink := w.sinkCtor()
 	c := common.Connector{Config: cfg, Connector: sink}
@@ -94,7 +99,10 @@ func (w *sinkWorker) RegisterConnector(connectorID string, config []byte) error 
 	if err != nil {
 		return err
 	}
-	w.addSink(connectorID, sink)
+	log.Info("connector start", map[string]interface{}{
+		"connector_id": connectorID,
+	})
+	w.sinks[connectorID] = sink
 	return nil
 }
 
@@ -104,30 +112,29 @@ func (w *sinkWorker) RemoveConnector(connectorID string) {
 	if w.shuttingDown {
 		return
 	}
+	log.Info("remove a connector", map[string]interface{}{
+		"connector_id": connectorID,
+	})
+	w.removeConnector(connectorID)
+}
+
+func (w *sinkWorker) removeConnector(connectorID string) {
 	sink, exist := w.sinks[connectorID]
 	if !exist {
 		return
 	}
-	log.Info("remove a connector stop it", map[string]interface{}{
-		"connector_id": connectorID,
-	})
-	sink.Destroy()
-	delete(w.sinks, connectorID)
-}
-
-func (w *sinkWorker) addSink(connectorID string, sink connector.Sink) {
-	w.cLock.Lock()
-	defer w.cLock.Unlock()
-	if _sink, exist := w.sinks[connectorID]; exist {
-		log.Info("connector exist,will stop it", map[string]interface{}{
+	err := sink.Destroy()
+	if err != nil {
+		log.Warning("connector destroy failed", map[string]interface{}{
+			log.KeyError:   err,
 			"connector_id": connectorID,
 		})
-		_sink.Destroy()
+	} else {
+		log.Info("connector destroy success", map[string]interface{}{
+			"connector_id": connectorID,
+		})
 	}
-	log.Info("add a connector", map[string]interface{}{
-		"connector_id": connectorID,
-	})
-	w.sinks[connectorID] = sink
+	delete(w.sinks, connectorID)
 }
 
 func (w *sinkWorker) getSink(connectorID string) connector.Sink {

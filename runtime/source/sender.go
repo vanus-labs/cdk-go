@@ -70,10 +70,6 @@ func (w *sourceSender) Start(ctx context.Context) {
 		defer w.wg.Done()
 		w.send(w.ctx)
 	}()
-
-	log.Info("the connector started", map[string]interface{}{
-		log.ConnectorName: w.source.Name(),
-	})
 }
 
 func (w *sourceSender) execute(ctx context.Context) {
