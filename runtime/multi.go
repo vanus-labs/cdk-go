@@ -15,21 +15,22 @@
 package runtime
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
 	"github.com/vanus-labs/cdk-go/util"
-	"github.com/vanus-labs/vanus-connect-runtime/pkg/controller"
+	cr "github.com/vanus-labs/vanus-connect-runtime/pkg/runtime"
 )
 
-func runMultiConnector(connectorKind config.Kind, connectorType string, worker common.Worker) {
+func runMultiConnector(kind config.Kind, connectorType string, worker common.Worker) {
 	ctx := util.SignalContext()
 	err := worker.Start(ctx)
 	if err != nil {
 		log.Error("worker start error", map[string]interface{}{
-			"kind":       connectorKind,
+			"kind":       kind,
 			"type":       connectorType,
 			log.KeyError: err,
 		})
@@ -38,29 +39,33 @@ func runMultiConnector(connectorKind config.Kind, connectorType string, worker c
 	newConnector := func(connectorID, config string) error {
 		return worker.RegisterConnector(connectorID, []byte(config))
 	}
-	ctrl, err := controller.NewController(controller.FilterConnector{
-		Kind: string(connectorKind),
-		Type: connectorType,
-	}, controller.ConnectorHandlerFuncs{
+	connectorHandler := cr.ConnectorEventHandlerFuncs{
 		AddFunc:    newConnector,
 		UpdateFunc: newConnector,
 		DeleteFunc: func(connectorID string) error {
 			worker.RemoveConnector(connectorID)
 			return nil
 		},
-	})
-	if err != nil {
-		panic("new connector controller failed")
 	}
-	go ctrl.Run(ctx)
+	r, err := cr.New(cr.WithFilter(fmt.Sprintf("kind=%s,type=%s", kind, connectorType)),
+		cr.WithEventHandler(connectorHandler))
+	if err != nil {
+		log.Error("new runtime error", map[string]interface{}{
+			"kind":       kind,
+			"type":       connectorType,
+			log.KeyError: err,
+		})
+		os.Exit(-1)
+	}
+	go r.Run(ctx)
 	<-ctx.Done()
 	log.Info("received system signal, beginning shutdown", map[string]interface{}{
-		"kind": connectorKind,
+		"kind": kind,
 		"type": connectorType,
 	})
 	worker.Stop()
 	log.Info("connector shutdown graceful", map[string]interface{}{
-		"kind": connectorKind,
+		"kind": kind,
 		"type": connectorType,
 	})
 }

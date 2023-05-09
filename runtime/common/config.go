@@ -1,4 +1,4 @@
-// Copyright 2023 Linkall Inc.
+// Copyright 2022 Linkall Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package common
 
-import (
-	cdkgo "github.com/vanus-labs/cdk-go"
+import "github.com/vanus-labs/cdk-go/config"
 
-	"github.com/vanus-labs/connector/sink/example/internal"
-)
+type WorkerConfig struct {
+	// standalone or multi
+	Multi bool `yaml:"multi" json:"multi"`
+	// connector type
+	Type string `yaml:"type" json:"type"`
+	// log config
+	LogConfig config.LogConfig `json:"log_config" yaml:"log_config"`
+}
 
-func main() {
-	cdkgo.RunSink(internal.NewExampleConfig, internal.NewExampleSink)
+type HTTPConfig struct {
+	WorkerConfig `yaml:",inline" json:",inline"`
+	BasePath     string `yaml:"base_path" json:"base_path"`
+	Port         int    `yaml:"port" json:"port"`
 }

@@ -24,9 +24,9 @@ import (
 )
 
 type sourceWorker struct {
-	cfgCtor    common.SourceConfigConstructor
-	sourceCtor common.SourceConstructor
-
+	cfgCtor      common.SourceConfigConstructor
+	sourceCtor   common.SourceConstructor
+	config       common.WorkerConfig
 	senders      map[string]*sourceSender
 	cLock        sync.RWMutex
 	ctx          context.Context
@@ -37,12 +37,17 @@ type sourceWorker struct {
 var _ common.Worker = &sourceWorker{}
 
 func NewSourceWorker(cfgCtor common.SourceConfigConstructor,
-	sourceCtor common.SourceConstructor) *sourceWorker {
+	sourceCtor common.SourceConstructor, config common.WorkerConfig) *sourceWorker {
 	return &sourceWorker{
 		cfgCtor:    cfgCtor,
 		sourceCtor: sourceCtor,
 		senders:    map[string]*sourceSender{},
+		config:     config,
 	}
+}
+
+func (w *sourceWorker) Config() common.WorkerConfig {
+	return w.config
 }
 
 func (w *sourceWorker) Start(ctx context.Context) error {

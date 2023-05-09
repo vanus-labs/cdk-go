@@ -17,17 +17,19 @@ package runtime
 import (
 	"os"
 
+	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
 	"github.com/vanus-labs/cdk-go/util"
 )
 
-func runStandaloneConnector(name string, worker common.Worker) {
+func runStandaloneConnector(kind config.Kind, connectorType string, worker common.Worker) {
 	ctx := util.SignalContext()
 	err := worker.Start(ctx)
 	if err != nil {
 		log.Error("worker start error", map[string]interface{}{
-			"name":       name,
+			"kind":       kind,
+			"type":       connectorType,
 			log.KeyError: err,
 		})
 		os.Exit(-1)
@@ -35,7 +37,8 @@ func runStandaloneConnector(name string, worker common.Worker) {
 	cfg, err := util.ReadConfigFile()
 	if err != nil {
 		log.Error("read config file error", map[string]interface{}{
-			"name":       name,
+			"kind":       kind,
+			"type":       connectorType,
 			log.KeyError: err,
 		})
 		os.Exit(-1)
@@ -43,17 +46,20 @@ func runStandaloneConnector(name string, worker common.Worker) {
 	err = worker.RegisterConnector("", cfg)
 	if err != nil {
 		log.Error("read config file error", map[string]interface{}{
-			"name":       name,
+			"kind":       kind,
+			"type":       connectorType,
 			log.KeyError: err,
 		})
 		os.Exit(-1)
 	}
 	<-ctx.Done()
 	log.Info("received system signal, beginning shutdown", map[string]interface{}{
-		"name": name,
+		"kind": kind,
+		"type": connectorType,
 	})
 	_ = worker.Stop()
 	log.Info("connector shutdown graceful", map[string]interface{}{
-		"name": name,
+		"kind": kind,
+		"type": connectorType,
 	})
 }

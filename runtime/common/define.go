@@ -29,6 +29,7 @@ type SinkConfigConstructor func() config.SinkConfigAccessor
 type SinkConstructor func() connector.Sink
 
 type Worker interface {
+	Config() WorkerConfig
 	Start(ctx context.Context) error
 	Stop() error
 	RegisterConnector(connectorID string, config []byte) error

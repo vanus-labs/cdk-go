@@ -27,21 +27,28 @@ import (
 
 type httpSourceWorker struct {
 	sourceWorker
+	config      common.HTTPConfig
+	basePathLen int
 }
 
 func NewHTTPSourceWorker(cfgCtor common.SourceConfigConstructor,
-	httpSourceCtor common.HTTPSourceConstructor) *httpSourceWorker {
+	httpSourceCtor common.HTTPSourceConstructor, config common.HTTPConfig) *httpSourceWorker {
 	w := NewSourceWorker(cfgCtor, func() connector.Source {
 		return httpSourceCtor()
-	})
+	}, config.WorkerConfig)
 	source := &httpSourceWorker{
 		sourceWorker: *w,
+		config:       config,
+		basePathLen:  len(config.BasePath),
 	}
 	return source
 }
 
 func (w *httpSourceWorker) getPort() int {
-	return 8080
+	if w.config.Port <= 0 {
+		return 8080
+	}
+	return w.config.Port
 }
 
 func (w *httpSourceWorker) Start(ctx context.Context) error {
@@ -68,6 +75,9 @@ func (w *httpSourceWorker) getHandler(connectorID string) http.Handler {
 
 func (w *httpSourceWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	connectorID := strings.TrimPrefix(strings.TrimSuffix(req.RequestURI, "/"), "/")
+	if w.basePathLen > 0 {
+		connectorID = connectorID[w.basePathLen:]
+	}
 	handler := w.getHandler(connectorID)
 	if handler == nil {
 		writer.WriteHeader(http.StatusNotFound)

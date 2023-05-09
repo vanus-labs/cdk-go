@@ -30,6 +30,7 @@ import (
 type sinkWorker struct {
 	cfgCtor      common.SinkConfigConstructor
 	sinkCtor     common.SinkConstructor
+	config       common.HTTPConfig
 	sinks        map[string]connector.Sink
 	cLock        sync.RWMutex
 	ctx          context.Context
@@ -37,16 +38,24 @@ type sinkWorker struct {
 	shuttingDown bool
 }
 
-func NewSinkWorker(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor) common.Worker {
+func NewSinkWorker(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor, config common.HTTPConfig) common.Worker {
 	return &sinkWorker{
 		cfgCtor:  cfgCtor,
 		sinkCtor: sinkCtor,
 		sinks:    map[string]connector.Sink{},
+		config:   config,
 	}
 }
 
+func (w *sinkWorker) Config() common.WorkerConfig {
+	return w.config.WorkerConfig
+}
+
 func (w *sinkWorker) getPort() int {
-	return 8080
+	if w.config.Port <= 0 {
+		return 8080
+	}
+	return w.config.Port
 }
 
 func (w *sinkWorker) Start(ctx context.Context) error {

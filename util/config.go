@@ -38,6 +38,14 @@ func ReadConfigFile() ([]byte, error) {
 	return os.ReadFile(getConfigFilePath())
 }
 
+func ParseConfigFile(v interface{}) error {
+	data, err := ReadConfigFile()
+	if err != nil {
+		return err
+	}
+	return ParseConfig(data, v)
+}
+
 func ParseConfig(data []byte, v interface{}) error {
 	configType := os.Getenv(EnvConnectorConfigType)
 	if configType == "" {

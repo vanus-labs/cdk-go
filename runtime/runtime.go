@@ -15,40 +15,48 @@
 package runtime
 
 import (
-	"os"
-	"strings"
-
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/runtime/common"
 	"github.com/vanus-labs/cdk-go/runtime/sink"
 	"github.com/vanus-labs/cdk-go/runtime/source"
+	"github.com/vanus-labs/cdk-go/util"
 )
 
-func isMulti() bool {
-	runtime := os.Getenv("CONNECTOR-RUNTIME")
-	return strings.ToLower(runtime) == "multi"
+func RunSink(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor) {
+	c := common.HTTPConfig{}
+	err := util.ParseConfigFile(c)
+	if err != nil {
+		panic("parse config failed:" + err.Error())
+	}
+	worker := sink.NewSinkWorker(cfgCtor, sinkCtor, c)
+	runConnector(config.SinkConnector, worker)
 }
 
-func RunSink(component string, cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor) {
-	worker := sink.NewSinkWorker(cfgCtor, sinkCtor)
-	runConnector(config.SinkConnector, component, worker)
+func RunSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceConstructor) {
+	c := common.WorkerConfig{}
+	err := util.ParseConfigFile(&c)
+	if err != nil {
+		panic("parse config failed:" + err.Error())
+	}
+	worker := source.NewSourceWorker(cfgCtor, sourceCtor, c)
+	runConnector(config.SourceConnector, worker)
 }
 
-func RunSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceConstructor) {
-	worker := source.NewSourceWorker(cfgCtor, sourceCtor)
-	runConnector(config.SourceConnector, component, worker)
+func RunHTTPSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.HTTPSourceConstructor) {
+	c := common.HTTPConfig{}
+	err := util.ParseConfigFile(&c)
+	if err != nil {
+		panic("parse config failed:" + err.Error())
+	}
+	worker := source.NewHTTPSourceWorker(cfgCtor, sourceCtor, c)
+	runConnector(config.SourceConnector, worker)
 }
 
-func RunHTTPSource(component string, cfgCtor common.SourceConfigConstructor, sourceCtor common.HTTPSourceConstructor) {
-	worker := source.NewHTTPSourceWorker(cfgCtor, sourceCtor)
-	runConnector(config.SourceConnector, component, worker)
-}
-
-func runConnector(kind config.Kind, component string, w common.Worker) {
-	multi := isMulti()
+func runConnector(kind config.Kind, w common.Worker) {
+	multi := w.Config().Multi
 	if !multi {
-		runStandaloneConnector(string(kind)+"-"+component, w)
+		runStandaloneConnector(kind, w.Config().Type, w)
 		return
 	}
-	runMultiConnector(kind, component, w)
+	runMultiConnector(kind, w.Config().Type, w)
 }
