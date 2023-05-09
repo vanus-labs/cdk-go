@@ -55,8 +55,8 @@ func RunHTTPSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.HTT
 func runConnector(kind config.Kind, w common.Worker) {
 	multi := w.Config().Multi
 	if !multi {
-		runStandaloneConnector(kind, w.Config().Type, w)
+		runStandaloneConnector(kind, w.Config().ConnectorType, w)
 		return
 	}
-	runMultiConnector(kind, w.Config().Type, w)
+	runMultiConnector(kind, w.Config().ConnectorType, w)
 }

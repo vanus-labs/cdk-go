@@ -20,7 +20,7 @@ type WorkerConfig struct {
 	// standalone or multi
 	Multi bool `yaml:"multi" json:"multi"`
 	// connector type
-	Type string `yaml:"type" json:"type"`
+	ConnectorType string `yaml:"connector_type" json:"connector_type"`
 	// log config
 	LogConfig config.LogConfig `json:"log_config" yaml:"log_config"`
 }

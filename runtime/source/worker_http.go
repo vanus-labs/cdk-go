@@ -74,8 +74,13 @@ func (w *httpSourceWorker) getHandler(connectorID string) http.Handler {
 }
 
 func (w *httpSourceWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	connectorID := strings.TrimPrefix(strings.TrimSuffix(req.RequestURI, "/"), "/")
+	connectorID := strings.TrimSuffix(req.RequestURI, "/")
 	if w.basePathLen > 0 {
+		if len(connectorID) <= w.basePathLen {
+			writer.WriteHeader(http.StatusBadRequest)
+			writer.Write([]byte("connectorID invalid"))
+			return
+		}
 		connectorID = connectorID[w.basePathLen:]
 	}
 	handler := w.getHandler(connectorID)
