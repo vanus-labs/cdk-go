@@ -17,6 +17,7 @@ package runtime
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/log"
@@ -24,6 +25,11 @@ import (
 	"github.com/vanus-labs/cdk-go/util"
 	cr "github.com/vanus-labs/vanus-connect-runtime/pkg/runtime"
 )
+
+func getConnectorID(connectorID string) string {
+	arr := strings.Split(connectorID, "-")
+	return arr[len(arr)-1]
+}
 
 func runMultiConnector(kind config.Kind, connectorType string, worker common.Worker) {
 	ctx := util.SignalContext()
@@ -37,13 +43,13 @@ func runMultiConnector(kind config.Kind, connectorType string, worker common.Wor
 		os.Exit(-1)
 	}
 	newConnector := func(connectorID, config string) error {
-		return worker.RegisterConnector(connectorID, []byte(config))
+		return worker.RegisterConnector(getConnectorID(connectorID), []byte(config))
 	}
 	connectorHandler := cr.ConnectorEventHandlerFuncs{
 		AddFunc:    newConnector,
 		UpdateFunc: newConnector,
 		DeleteFunc: func(connectorID string) error {
-			worker.RemoveConnector(connectorID)
+			worker.RemoveConnector(getConnectorID(connectorID))
 			return nil
 		},
 	}
