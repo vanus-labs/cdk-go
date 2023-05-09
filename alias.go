@@ -29,6 +29,7 @@ type SecretAccessor = config.SecretAccessor
 type SourceConfig = config.SourceConfig
 type Tuple = connector.Tuple
 type Source = connector.Source
+type HTTPSource = connector.HTTPSource
 
 type SinkConfig = config.SinkConfig
 type Result = connector.Result
