@@ -16,6 +16,7 @@ package runtime
 
 import (
 	"github.com/vanus-labs/cdk-go/config"
+	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
 	"github.com/vanus-labs/cdk-go/runtime/sink"
 	"github.com/vanus-labs/cdk-go/runtime/source"
@@ -24,7 +25,7 @@ import (
 
 func RunSink(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor) {
 	c := common.HTTPConfig{}
-	err := util.ParseConfigFile(c)
+	err := util.ParseConfigFile(&c)
 	if err != nil {
 		panic("parse config failed:" + err.Error())
 	}
@@ -53,6 +54,7 @@ func RunHTTPSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.HTT
 }
 
 func runConnector(kind config.Kind, w common.Worker) {
+	log.SetLogLevel(w.Config().LogConfig.GetLogLevel())
 	multi := w.Config().Multi
 	if !multi {
 		runStandaloneConnector(kind, w.Config().ConnectorType, w)

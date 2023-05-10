@@ -22,6 +22,7 @@ import (
 
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/connector"
+	"github.com/vanus-labs/cdk-go/store"
 	"github.com/vanus-labs/cdk-go/util"
 )
 
@@ -42,6 +43,11 @@ func (c *Connector) initConfig(ctx context.Context, config []byte) error {
 	err = c.Config.Validate()
 	if err != nil {
 		return errors.Wrap(err, "config validate error")
+	}
+	//todo multi connector
+	err = store.InitKvStore(c.Config.GetStoreConfig())
+	if err != nil {
+		return errors.Wrap(err, "init kv store error")
 	}
 	return nil
 }
