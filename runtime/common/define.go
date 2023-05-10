@@ -12,36 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package connector
+package common
 
 import (
-	"net/http"
+	"context"
 
-	ce "github.com/cloudevents/sdk-go/v2"
+	"github.com/vanus-labs/cdk-go/config"
+	"github.com/vanus-labs/cdk-go/connector"
 )
 
-// Source is the interface a source connector expected to implement.
-type Source interface {
-	Connector
-	// Chan transform relay data to CloudEvents
-	Chan() <-chan *Tuple
-}
+type SourceConfigConstructor func() config.SourceConfigAccessor
+type SourceConstructor func() connector.Source
+type HTTPSourceConstructor func() connector.HTTPSource
 
-type Tuple struct {
-	Event   *ce.Event
-	Success func()
-	Failed  func(err error)
-}
+type SinkConfigConstructor func() config.SinkConfigAccessor
+type SinkConstructor func() connector.Sink
 
-func NewTuple(event *ce.Event, success func(), failed func(error)) *Tuple {
-	return &Tuple{
-		Event:   event,
-		Success: success,
-		Failed:  failed,
-	}
-}
-
-type HTTPSource interface {
-	Source
-	http.Handler
+type Worker interface {
+	Config() WorkerConfig
+	Start(ctx context.Context) error
+	Stop() error
+	RegisterConnector(connectorID string, config []byte) error
+	RemoveConnector(connectorID string)
 }

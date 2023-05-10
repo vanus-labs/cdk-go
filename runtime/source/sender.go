@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runtime
+package source
 
 import (
 	"context"
 	"errors"
-	"os"
 	"sync"
 	"time"
 
@@ -30,24 +29,7 @@ import (
 	"github.com/vanus-labs/cdk-go/util"
 )
 
-type SourceConfigConstructor func() config.SourceConfigAccessor
-
-type SourceConstructor func() connector.Source
-
-func RunSource(cfgCtor SourceConfigConstructor, sourceCtor SourceConstructor) {
-	cfg := cfgCtor()
-	source := sourceCtor()
-	err := runConnector(cfg, source)
-	if err != nil {
-		log.Error("run source error", map[string]interface{}{
-			log.KeyError: err,
-			"name":       source.Name(),
-		})
-		os.Exit(-1)
-	}
-}
-
-type SourceWorker struct {
+type sourceSender struct {
 	cfg      config.SourceConfigAccessor
 	source   connector.Source
 	ceClient ce.Client
@@ -55,49 +37,50 @@ type SourceWorker struct {
 	sd       sender.CloudEventSender
 	mutex    sync.RWMutex
 	current  []*connector.Tuple
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
-func newSourceWorker(cfg config.SourceConfigAccessor, source connector.Source) Worker {
-	return &SourceWorker{
+func newSourceSender(cfg config.SourceConfigAccessor, source connector.Source) *sourceSender {
+	return &sourceSender{
 		cfg:    cfg,
 		source: source,
 	}
 }
 
-func (w *SourceWorker) Start(ctx context.Context) error {
+func (w *sourceSender) GetSource() connector.Source {
+	return w.source
+}
+
+func (w *sourceSender) Start(ctx context.Context) {
+	w.ctx, w.cancel = context.WithCancel(ctx)
 	if w.cfg.GetVanusConfig() != nil {
 		w.sd = sender.NewVanusSender(w.cfg.GetVanusConfig().Eventbus, w.cfg.GetVanusConfig().Eventbus)
 	} else {
 		w.sd = sender.NewHTTPSender(w.cfg.GetTarget())
 	}
-	if w.sd == nil {
-		return errors.New("failed to init cloudevents sender")
-	}
-
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
-		w.execute(ctx)
+		w.execute(w.ctx)
 	}()
 
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
-		w.send(ctx)
+		w.send(w.ctx)
 	}()
-
-	log.Info("the connector started", map[string]interface{}{
-		log.ConnectorName: w.source.Name(),
-	})
-	return nil
 }
 
-func (w *SourceWorker) execute(ctx context.Context) {
+func (w *sourceSender) execute(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case tuple := <-w.source.Chan():
+		case tuple, ok := <-w.source.Chan():
+			if !ok {
+				return
+			}
 			w.mutex.RLock()
 			w.current = append(w.current, tuple)
 			w.mutex.RUnlock()
@@ -106,8 +89,9 @@ func (w *SourceWorker) execute(ctx context.Context) {
 	}
 }
 
-func (w *SourceWorker) send(ctx context.Context) {
-	t := time.NewTimer(200 * time.Microsecond)
+func (w *sourceSender) send(ctx context.Context) {
+	t := time.NewTicker(200 * time.Microsecond)
+	defer t.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -118,19 +102,20 @@ func (w *SourceWorker) send(ctx context.Context) {
 	}
 }
 
-func (w *SourceWorker) needAttempt(attempt int) bool {
+func (w *sourceSender) needAttempt(attempt int) bool {
 	if w.cfg.GetAttempts() <= 0 {
 		return true
 	}
 	return attempt < w.cfg.GetAttempts()
 }
 
-func (w *SourceWorker) Stop() error {
+func (w *sourceSender) Stop() error {
+	w.cancel()
 	w.wg.Wait()
 	return w.source.Destroy()
 }
 
-func (w *SourceWorker) doSend(force bool) {
+func (w *sourceSender) doSend(force bool) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 	if len(w.current) < w.cfg.GetBatchSize() && !force {

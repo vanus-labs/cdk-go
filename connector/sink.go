@@ -45,7 +45,11 @@ func (r Result) ConvertToCeResult() ce.Result {
 }
 
 func (r Result) GetCode() Code {
-	return r.GetCode()
+	return r.c
+}
+
+func (r Result) GetMsg() string {
+	return r.msg
 }
 
 func (r Result) Error() error {

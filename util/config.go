@@ -17,21 +17,47 @@ package util
 import (
 	"encoding/json"
 	"os"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
-func ParseConfig(file string, v interface{}) error {
-	data, err := os.ReadFile(file)
+const (
+	EnvConnectorConfigType = "CONNECTOR_CONFIG_TYPE"
+	EnvConfigFile          = "CONNECTOR_CONFIG"
+)
+
+func getConfigFilePath() string {
+	file := os.Getenv(EnvConfigFile)
+	if file == "" {
+		file = "config.yml"
+	}
+	return file
+}
+
+func ReadConfigFile() ([]byte, error) {
+	return os.ReadFile(getConfigFilePath())
+}
+
+func ParseConfigFile(v interface{}) error {
+	data, err := ReadConfigFile()
 	if err != nil {
 		return err
 	}
+	return ParseConfig(data, v)
+}
 
-	if strings.HasSuffix(file, "json") {
-		err = json.Unmarshal(data, v)
-	} else {
-		err = yaml.Unmarshal(data, v)
+func ParseConfig(data []byte, v interface{}) error {
+	configType := os.Getenv(EnvConnectorConfigType)
+	if configType == "" {
+		// config default use yaml
+		configType = "yaml"
 	}
-	return err
+	return parseConfig(configType, data, v)
+}
+
+func parseConfig(t string, data []byte, v interface{}) error {
+	if t == "json" {
+		return json.Unmarshal(data, v)
+	}
+	return yaml.Unmarshal(data, v)
 }

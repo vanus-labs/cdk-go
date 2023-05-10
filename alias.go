@@ -29,6 +29,7 @@ type SecretAccessor = config.SecretAccessor
 type SourceConfig = config.SourceConfig
 type Tuple = connector.Tuple
 type Source = connector.Source
+type HTTPSource = connector.HTTPSource
 
 type SinkConfig = config.SinkConfig
 type Result = connector.Result
@@ -37,12 +38,14 @@ type Sink = connector.Sink
 type KVStore = store.KVStore
 
 var (
-	NewTuple  = connector.NewTuple
-	RunSource = runtime.RunSource
+	NewTuple      = connector.NewTuple
+	RunSource     = runtime.RunSource
+	RunHttpSource = runtime.RunHTTPSource
+
+	RunSink = runtime.RunSink
 
 	SuccessResult = connector.Success
 	NewResult     = connector.NewResult
-	RunSink       = runtime.RunSink
 
 	GetKVStore = store.GetKVStore
 )
