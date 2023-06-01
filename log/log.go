@@ -56,10 +56,6 @@ func SetOutput(w io.Writer) {
 	lg = lg.Output(w)
 }
 
-func GetLogger() zerolog.Logger {
-	return lg.With().Logger()
-}
-
 func Debug() *zerolog.Event {
 	return lg.Debug()
 }

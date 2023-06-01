@@ -21,8 +21,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rs/zerolog"
-
 	"github.com/vanus-labs/cdk-go/connector"
 	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
@@ -38,7 +36,6 @@ type sinkWorker struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
 	shuttingDown bool
-	logger       zerolog.Logger
 }
 
 func NewSinkWorker(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor, config common.HTTPConfig) common.Worker {
@@ -47,7 +44,6 @@ func NewSinkWorker(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkCon
 		sinkCtor: sinkCtor,
 		sinks:    map[string]connector.Sink{},
 		config:   config,
-		logger:   log.GetLogger(),
 	}
 }
 
@@ -84,7 +80,7 @@ func (w *sinkWorker) Stop() error {
 		go func(id string) {
 			defer wg.Done()
 			err := w.sinks[id].Destroy()
-			w.logger.Info().Str(log.KeyConnectorID, id).Err(err).Msg("sink destroy")
+			log.Info().Str(log.KeyConnectorID, id).Err(err).Msg("sink destroy")
 		}(id)
 	}
 	wg.Wait()
@@ -97,7 +93,7 @@ func (w *sinkWorker) RegisterConnector(connectorID string, config []byte) error 
 	if w.shuttingDown {
 		return nil
 	}
-	w.logger.Info().Str(log.KeyConnectorID, connectorID).Msg("add a connector")
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("add a connector")
 	// check the connector is existed,if true stop it
 	w.removeConnector(connectorID)
 	cfg := w.cfgCtor()
@@ -107,7 +103,7 @@ func (w *sinkWorker) RegisterConnector(connectorID string, config []byte) error 
 	if err != nil {
 		return err
 	}
-	w.logger.Info().Str(log.KeyConnectorID, connectorID).Msg("connector start")
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("connector start")
 	w.sinks[connectorID] = sink
 	return nil
 }
@@ -118,7 +114,7 @@ func (w *sinkWorker) RemoveConnector(connectorID string) {
 	if w.shuttingDown {
 		return
 	}
-	w.logger.Info().Str(log.KeyConnectorID, connectorID).Msg("remove a connector")
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("remove a connector")
 	w.removeConnector(connectorID)
 }
 
@@ -129,9 +125,9 @@ func (w *sinkWorker) removeConnector(connectorID string) {
 	}
 	err := sink.Destroy()
 	if err != nil {
-		w.logger.Warn().Str(log.KeyConnectorID, connectorID).Err(err).Msg("connector destroy failed")
+		log.Warn().Str(log.KeyConnectorID, connectorID).Err(err).Msg("connector destroy failed")
 	} else {
-		w.logger.Info().Str(log.KeyConnectorID, connectorID).Msg("connector destroy success")
+		log.Info().Str(log.KeyConnectorID, connectorID).Msg("connector destroy success")
 	}
 	delete(w.sinks, connectorID)
 }
