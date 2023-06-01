@@ -80,10 +80,7 @@ func (w *sinkWorker) Stop() error {
 		go func(id string) {
 			defer wg.Done()
 			err := w.sinks[id].Destroy()
-			log.Info("sink destroy", map[string]interface{}{
-				"connector_id": id,
-				log.KeyError:   err,
-			})
+			log.Info().Str(log.KeyConnectorID, id).Err(err).Msg("sink destroy")
 		}(id)
 	}
 	wg.Wait()
@@ -96,21 +93,17 @@ func (w *sinkWorker) RegisterConnector(connectorID string, config []byte) error 
 	if w.shuttingDown {
 		return nil
 	}
-	log.Info("add a connector", map[string]interface{}{
-		"connector_id": connectorID,
-	})
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("add a connector")
 	// check the connector is existed,if true stop it
 	w.removeConnector(connectorID)
 	cfg := w.cfgCtor()
 	sink := w.sinkCtor()
 	c := common.Connector{Config: cfg, Connector: sink}
-	err := c.InitConnector(w.ctx, config)
+	err := c.InitConnector(log.WithLogger(context.Background(), log.NewConnectorLog(connectorID)), config)
 	if err != nil {
 		return err
 	}
-	log.Info("connector start", map[string]interface{}{
-		"connector_id": connectorID,
-	})
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("connector start")
 	w.sinks[connectorID] = sink
 	return nil
 }
@@ -121,9 +114,7 @@ func (w *sinkWorker) RemoveConnector(connectorID string) {
 	if w.shuttingDown {
 		return
 	}
-	log.Info("remove a connector", map[string]interface{}{
-		"connector_id": connectorID,
-	})
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("remove a connector")
 	w.removeConnector(connectorID)
 }
 
@@ -134,14 +125,9 @@ func (w *sinkWorker) removeConnector(connectorID string) {
 	}
 	err := sink.Destroy()
 	if err != nil {
-		log.Warning("connector destroy failed", map[string]interface{}{
-			log.KeyError:   err,
-			"connector_id": connectorID,
-		})
+		log.Warn().Str(log.KeyConnectorID, connectorID).Err(err).Msg("connector destroy failed")
 	} else {
-		log.Info("connector destroy success", map[string]interface{}{
-			"connector_id": connectorID,
-		})
+		log.Info().Str(log.KeyConnectorID, connectorID).Msg("connector destroy success")
 	}
 	delete(w.sinks, connectorID)
 }
@@ -164,5 +150,5 @@ func (w *sinkWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 		writer.Write([]byte("connectorID invalid"))
 		return
 	}
-	handHttpRequest(w.ctx, connectorModel{connectorID: connectorID, sink: sink}, writer, req)
+	w.handHttpRequest(req.Context(), connectorModel{connectorID: connectorID, sink: sink}, writer, req)
 }

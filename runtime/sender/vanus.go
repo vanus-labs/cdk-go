@@ -41,9 +41,7 @@ func NewVanusSender(endpoint string, eventbus string) CloudEventSender {
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, endpoint, opts...)
 	if err != nil {
-		log.Error("failed to connector vanus", map[string]interface{}{
-			log.KeyError: err,
-		})
+		log.Error().Str("endpoint", endpoint).Str("eventbus", eventbus).Err(err).Msg("failed to connector vanus")
 		return nil
 	}
 	return &vanusSender{

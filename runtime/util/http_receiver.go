@@ -41,9 +41,7 @@ func (r *HTTPReceiver) StartListen(ctx context.Context, handler http.Handler) er
 	}
 	errChan := make(chan error, 1)
 	go func() {
-		log.Info("http server is ready to start", map[string]interface{}{
-			"port": r.port,
-		})
+		log.Info().Interface("port", r.port).Msg("http server is ready to start")
 		errChan <- r.server.ListenAndServe()
 	}()
 	select {

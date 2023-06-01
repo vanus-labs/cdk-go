@@ -21,6 +21,7 @@ import (
 	"time"
 
 	ce "github.com/cloudevents/sdk-go/v2"
+	"github.com/rs/zerolog"
 
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/connector"
@@ -39,6 +40,7 @@ type sourceSender struct {
 	current  []*connector.Tuple
 	ctx      context.Context
 	cancel   context.CancelFunc
+	logger   zerolog.Logger
 }
 
 func newSourceSender(cfg config.SourceConfigAccessor, source connector.Source) *sourceSender {
@@ -53,6 +55,7 @@ func (w *sourceSender) GetSource() connector.Source {
 }
 
 func (w *sourceSender) Start(ctx context.Context) {
+	w.logger = log.FromContext(ctx)
 	w.ctx, w.cancel = context.WithCancel(ctx)
 	if w.cfg.GetVanusConfig() != nil {
 		w.sd = sender.NewVanusSender(w.cfg.GetVanusConfig().Eventbus, w.cfg.GetVanusConfig().Eventbus)
@@ -118,7 +121,8 @@ func (w *sourceSender) Stop() error {
 func (w *sourceSender) doSend(force bool) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
-	if len(w.current) < w.cfg.GetBatchSize() && !force {
+	eventNum := len(w.current)
+	if eventNum <= 0 || (eventNum < w.cfg.GetBatchSize() && !force) {
 		return
 	}
 
@@ -139,26 +143,15 @@ func (w *sourceSender) doSend(force bool) {
 		attempt++
 		// TODO(wenfeng) remove ce.IsACK?
 		if err == nil || ce.IsACK(err) {
-			log.Debug("send event success", map[string]interface{}{
-				"event":   events,
-				"attempt": attempt,
-			})
+			w.logger.Debug().Interface("attempt", attempt).Int("event_num", len(events)).Msg("send event success")
 			err = nil
 			break
 		}
 		if errors.Is(err, context.Canceled) || !w.needAttempt(attempt) {
-			log.Error("send event fail", map[string]interface{}{
-				log.KeyError: err,
-				"attempt":    attempt,
-				"event":      events,
-			})
+			w.logger.Error().Interface("attempt", attempt).Int("event_num", len(events)).Err(err).Msg("send event failed")
 			break
 		}
-		log.Warning("send event failed, will retry", map[string]interface{}{
-			log.KeyError: err,
-			"attempt":    attempt,
-			"event":      events,
-		})
+		w.logger.Warn().Interface("attempt", attempt).Int("event_num", len(events)).Err(err).Msg("send event failed, will retry")
 		time.Sleep(util.Backoff(attempt, time.Second*5))
 	}
 

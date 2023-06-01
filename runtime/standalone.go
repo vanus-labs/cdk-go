@@ -27,39 +27,21 @@ func runStandaloneConnector(kind config.Kind, connectorType string, worker commo
 	ctx := util.SignalContext()
 	err := worker.Start(ctx)
 	if err != nil {
-		log.Error("worker start error", map[string]interface{}{
-			"kind":       kind,
-			"type":       connectorType,
-			log.KeyError: err,
-		})
+		log.Error().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("worker start error")
 		os.Exit(-1)
 	}
 	cfg, err := util.ReadConfigFile()
 	if err != nil {
-		log.Error("read config file error", map[string]interface{}{
-			"kind":       kind,
-			"type":       connectorType,
-			log.KeyError: err,
-		})
+		log.Error().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("new runtime error")
 		os.Exit(-1)
 	}
 	err = worker.RegisterConnector("", cfg)
 	if err != nil {
-		log.Error("read config file error", map[string]interface{}{
-			"kind":       kind,
-			"type":       connectorType,
-			log.KeyError: err,
-		})
+		log.Error().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("read config file error")
 		os.Exit(-1)
 	}
 	<-ctx.Done()
-	log.Info("received system signal, beginning shutdown", map[string]interface{}{
-		"kind": kind,
-		"type": connectorType,
-	})
+	log.Info().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("received system signal, beginning shutdown")
 	_ = worker.Stop()
-	log.Info("connector shutdown graceful", map[string]interface{}{
-		"kind": kind,
-		"type": connectorType,
-	})
+	log.Info().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("connector shutdown graceful")
 }

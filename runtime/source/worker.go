@@ -66,10 +66,7 @@ func (w *sourceWorker) Stop() error {
 		go func(id string) {
 			defer wg.Done()
 			err := w.senders[id].Stop()
-			log.Info("connector stop", map[string]interface{}{
-				"id":         id,
-				log.KeyError: err,
-			})
+			log.Info().Str(log.KeyConnectorID, id).Err(err).Msg("connector stop")
 		}(id)
 	}
 	wg.Wait()
@@ -92,23 +89,19 @@ func (w *sourceWorker) RegisterConnector(connectorID string, config []byte) erro
 	if w.shuttingDown {
 		return nil
 	}
-	log.Info("add a connector", map[string]interface{}{
-		"connector_id": connectorID,
-	})
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("add a connector")
 	// check the connector is existed,if true stop it
 	w.removeConnector(connectorID)
 	cfg := w.cfgCtor()
 	source := w.sourceCtor()
 	ctor := common.Connector{Config: cfg, Connector: source}
-	err := ctor.InitConnector(w.ctx, config)
+	err := ctor.InitConnector(log.WithLogger(context.Background(), log.NewConnectorLog(connectorID)), config)
 	if err != nil {
 		return err
 	}
 	sender := newSourceSender(cfg, source)
-	sender.Start(w.ctx)
-	log.Info("connector start", map[string]interface{}{
-		"connector_id": connectorID,
-	})
+	sender.Start(log.WithLogger(context.Background(), log.NewConnectorLog(connectorID)))
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("connector start")
 	w.senders[connectorID] = sender
 	return nil
 }
@@ -119,9 +112,7 @@ func (w *sourceWorker) RemoveConnector(connectorID string) {
 	if w.shuttingDown {
 		return
 	}
-	log.Info("remove a connector", map[string]interface{}{
-		"connector_id": connectorID,
-	})
+	log.Info().Str(log.KeyConnectorID, connectorID).Msg("remove a connector")
 	w.removeConnector(connectorID)
 }
 
@@ -132,14 +123,9 @@ func (w *sourceWorker) removeConnector(connectorID string) {
 	}
 	err := sender.Stop()
 	if err != nil {
-		log.Warning("connector stop failed", map[string]interface{}{
-			log.KeyError:   err,
-			"connector_id": connectorID,
-		})
+		log.Warn().Str(log.KeyConnectorID, connectorID).Err(err).Msg("connector stop failed")
 	} else {
-		log.Info("connector stop success", map[string]interface{}{
-			"connector_id": connectorID,
-		})
+		log.Info().Str(log.KeyConnectorID, connectorID).Msg("connector stop success")
 	}
 	delete(w.senders, connectorID)
 }
