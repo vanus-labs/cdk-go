@@ -34,19 +34,19 @@ func (w *sinkWorker) handHttpRequest(ctx context.Context, model connectorModel, 
 	sink := model.sink
 	event, err := ce.NewEventFromHTTPRequest(req)
 	if err != nil {
-		w.logger.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("failed to extract event from request")
+		log.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("failed to extract event from request")
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	validationErr := event.Validate()
 	if validationErr != nil {
-		w.logger.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("failed to validate extracted event")
+		log.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("failed to validate extracted event")
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	result := sink.Arrived(ctx, event)
 	if result != connector.Success {
-		w.logger.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("event process failed")
+		log.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("event process failed")
 		writer.WriteHeader(int(result.GetCode()))
 		_, _ = writer.Write([]byte(result.GetMsg()))
 		return
