@@ -32,9 +32,7 @@ type httpSender struct {
 func NewHTTPSender(target string) CloudEventSender {
 	ceClient, err := ce.NewClientHTTP(ce.WithTarget(target))
 	if err != nil {
-		log.Error("failed to init HTTP client", map[string]interface{}{
-			log.KeyError: err,
-		})
+		log.Error().Err(err).Msg("failed to init HTTP client")
 	}
 	return &httpSender{
 		ceClient: ceClient,

@@ -29,37 +29,28 @@ type connectorModel struct {
 	sink        connector.Sink
 }
 
-func handHttpRequest(ctx context.Context, model connectorModel, writer http.ResponseWriter, req *http.Request) {
+func (w *sinkWorker) handHttpRequest(ctx context.Context, model connectorModel, writer http.ResponseWriter, req *http.Request) {
 	connectorID := model.connectorID
 	sink := model.sink
 	event, err := ce.NewEventFromHTTPRequest(req)
 	if err != nil {
-		log.Info("failed to extract event from request", map[string]interface{}{
-			log.KeyError:   err,
-			"connector_id": connectorID,
-		})
+		w.logger.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("failed to extract event from request")
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	validationErr := event.Validate()
 	if validationErr != nil {
-		log.Info("failed to validate extracted event", map[string]interface{}{
-			log.KeyError:   err,
-			"connector_id": connectorID,
-		})
+		w.logger.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("failed to validate extracted event")
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	result := sink.Arrived(ctx, event)
 	if result != connector.Success {
-		log.Info("event process failed", map[string]interface{}{
-			log.KeyError:   result.Error(),
-			"connector_id": connectorID,
-		})
+		w.logger.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("event process failed")
 		writer.WriteHeader(int(result.GetCode()))
-		writer.Write([]byte(result.GetMsg()))
+		_, _ = writer.Write([]byte(result.GetMsg()))
 		return
 	}
 	writer.WriteHeader(http.StatusOK)
-	writer.Write([]byte("accepted"))
+	_, _ = writer.Write([]byte("accepted"))
 }

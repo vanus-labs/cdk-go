@@ -19,8 +19,6 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-
-	"github.com/vanus-labs/cdk-go/log"
 )
 
 type SourceConfigAccessor interface {
@@ -64,32 +62,6 @@ func (c *SourceConfig) Validate() error {
 	if target == "" && c.Vanus == nil {
 		return errors.New("config target and vanus can't be both empty")
 	}
-	// print configuration
-	log.Info("config", map[string]interface{}{
-		"target": c.Target,
-	})
-
-	if target != "" && c.Vanus != nil {
-		log.Info("vanus is configured, target was ignored", map[string]interface{}{
-			"endpoint": c.Vanus.Endpoint,
-			"eventbus": c.Vanus.Eventbus,
-		})
-	}
-	log.Info("config", map[string]interface{}{
-		"vanus": c.Vanus,
-	})
-
-	if c.BatchSize > 0 && c.GetVanusConfig() == nil {
-		log.Warning("config batch_size ignored, because default HTTP sender doesn't support batch mode", nil)
-	}
-	log.Info("config", map[string]interface{}{
-		"batch_size": c.BatchSize,
-	})
-
-	log.Info("config", map[string]interface{}{
-		"send_event_attempts": c.SendEventAttempts,
-	})
-
 	_, err := url.Parse(target)
 	if err != nil {
 		return errors.Wrap(err, "target is invalid")

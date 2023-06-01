@@ -35,11 +35,7 @@ func runMultiConnector(kind config.Kind, connectorType string, worker common.Wor
 	ctx := util.SignalContext()
 	err := worker.Start(ctx)
 	if err != nil {
-		log.Error("worker start error", map[string]interface{}{
-			"kind":       kind,
-			"type":       connectorType,
-			log.KeyError: err,
-		})
+		log.Error().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("worker start error")
 		os.Exit(-1)
 	}
 	newConnector := func(connectorID, config string) error {
@@ -56,22 +52,12 @@ func runMultiConnector(kind config.Kind, connectorType string, worker common.Wor
 	r, err := cr.New(cr.WithFilter(fmt.Sprintf("kind=%s,type=%s", kind, connectorType)),
 		cr.WithEventHandler(connectorHandler))
 	if err != nil {
-		log.Error("new runtime error", map[string]interface{}{
-			"kind":       kind,
-			"type":       connectorType,
-			log.KeyError: err,
-		})
+		log.Error().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("new runtime error")
 		os.Exit(-1)
 	}
 	go r.Run(ctx)
 	<-ctx.Done()
-	log.Info("received system signal, beginning shutdown", map[string]interface{}{
-		"kind": kind,
-		"type": connectorType,
-	})
+	log.Info().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("received system signal, beginning shutdown")
 	worker.Stop()
-	log.Info("connector shutdown graceful", map[string]interface{}{
-		"kind": kind,
-		"type": connectorType,
-	})
+	log.Info().Interface("kind", kind).Str("type", connectorType).Err(err).Msg("connector shutdown graceful")
 }

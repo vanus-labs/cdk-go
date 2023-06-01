@@ -15,149 +15,80 @@
 package log
 
 import (
+	"context"
 	"io"
+	"os"
 	"strings"
-	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
-type Logger interface {
-	Debug(msg string, fields map[string]interface{})
-	Info(msg string, fields map[string]interface{})
-	Warning(msg string, fields map[string]interface{})
-	Error(msg string, fields map[string]interface{})
-	Fatal(msg string, fields map[string]interface{})
-	SetLevel(level string)
-	SetLogWriter(writer io.Writer)
-	SetName(name string)
-}
+var lg zerolog.Logger
+var lvl zerolog.Level
 
 func init() {
-	r := newDefaultLog()
-	vLog = r
+	out := zerolog.NewConsoleWriter()
+	out.TimeFormat = zerolog.TimeFieldFormat
+	lg = zerolog.New(out).With().Timestamp().Caller().Logger()
+	level := os.Getenv("VANUS_LOG_LEVEL")
+	SetLogLevel(level)
 }
 
-var vLog Logger
-
-func NewLogger() Logger {
-	l := newDefaultLog()
-	l.logger.SetLevel(vLog.(*defaultLogger).logger.Level)
-	return l
-}
-
-func newDefaultLog() *defaultLogger {
-	logger := logrus.New()
-	logger.Formatter = &logrus.TextFormatter{TimestampFormat: time.RFC3339Nano, FullTimestamp: true}
-	r := &defaultLogger{
-		logger: logger,
-	}
-	return r
-}
-
-type defaultLogger struct {
-	logger *logrus.Logger
-	name   string
-}
-
-func (l *defaultLogger) SetName(name string) {
-	l.name = name
-}
-
-func (l *defaultLogger) Debug(msg string, fields map[string]interface{}) {
-	if msg == "" && len(fields) == 0 {
-		return
-	}
-	l.logger.WithFields(fields).Debug(msg)
-}
-
-func (l *defaultLogger) Info(msg string, fields map[string]interface{}) {
-	if msg == "" && len(fields) == 0 {
-		return
-	}
-	l.logger.WithFields(fields).Info(msg)
-}
-
-func (l *defaultLogger) Warning(msg string, fields map[string]interface{}) {
-	if msg == "" && len(fields) == 0 {
-		return
-	}
-	l.logger.WithFields(fields).Warning(msg)
-}
-
-func (l *defaultLogger) Error(msg string, fields map[string]interface{}) {
-	if msg == "" && len(fields) == 0 {
-		return
-	}
-	l.logger.WithFields(fields).Error(msg)
-}
-
-func (l *defaultLogger) Fatal(msg string, fields map[string]interface{}) {
-	if msg == "" && len(fields) == 0 {
-		return
-	}
-	l.logger.WithFields(fields).Fatal(msg)
-}
-
-func (l *defaultLogger) SetLevel(level string) {
+func SetLogLevel(level string) {
 	switch strings.ToLower(level) {
 	case "debug":
-		l.logger.SetLevel(logrus.DebugLevel)
+		lvl = zerolog.DebugLevel
+	case "info":
+		lvl = zerolog.InfoLevel
 	case "warn":
-		l.logger.SetLevel(logrus.WarnLevel)
+		lvl = zerolog.WarnLevel
 	case "error":
-		l.logger.SetLevel(logrus.ErrorLevel)
+		lvl = zerolog.ErrorLevel
 	case "fatal":
-		l.logger.SetLevel(logrus.FatalLevel)
+		lvl = zerolog.FatalLevel
 	default:
-		l.logger.SetLevel(logrus.InfoLevel)
+		lvl = zerolog.InfoLevel
 	}
+	lg.Level(lvl)
 }
 
-func (l *defaultLogger) SetLogWriter(writer io.Writer) {
-	l.logger.Out = writer
-	return
+func SetOutput(w io.Writer) {
+	lg = lg.Output(w)
 }
 
-// SetLogger use specified logger user customized, in general, we suggest user to replace the default logger with specified
-func SetLogger(logger Logger) {
-	vLog = logger
+func GetLogger() zerolog.Logger {
+	return lg.With().Logger()
 }
-func SetLogLevel(level string) {
-	if level == "" {
-		return
+
+func Debug() *zerolog.Event {
+	return lg.Debug()
+}
+
+func Info() *zerolog.Event {
+	return lg.Info()
+}
+
+func Warn() *zerolog.Event {
+	return lg.Warn()
+}
+
+func Error() *zerolog.Event {
+	return lg.Error()
+}
+
+func NewConnectorLog(connectorID string) zerolog.Logger {
+	return lg.With().Str(KeyConnectorID, connectorID).Logger().Level(lvl)
+}
+
+type loggerKey struct{}
+
+func WithLogger(ctx context.Context, logger zerolog.Logger) context.Context {
+	return context.WithValue(ctx, loggerKey{}, logger)
+}
+
+func FromContext(ctx context.Context) zerolog.Logger {
+	if logger, ok := ctx.Value(loggerKey{}).(zerolog.Logger); ok {
+		return logger
 	}
-	vLog.Info("logger level is set", map[string]interface{}{
-		"log_level": level,
-	})
-	vLog.SetLevel(level)
-}
-
-func SetLogWriter(writer io.Writer) {
-	if writer == nil {
-		return
-	}
-	vLog.SetLogWriter(writer)
-}
-
-func Debug(msg string, fields map[string]interface{}) {
-	vLog.Debug(msg, fields)
-}
-
-func Info(msg string, fields map[string]interface{}) {
-	if msg == "" && len(fields) == 0 {
-		return
-	}
-	vLog.Info(msg, fields)
-}
-
-func Warning(msg string, fields map[string]interface{}) {
-	if msg == "" && len(fields) == 0 {
-		return
-	}
-	vLog.Warning(msg, fields)
-}
-
-func Error(msg string, fields map[string]interface{}) {
-	vLog.Error(msg, fields)
+	return lg
 }

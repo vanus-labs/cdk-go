@@ -18,5 +18,6 @@ const (
 	KeyError   = "error"
 	KeyUnknown = "known"
 
-	ConnectorName = "connector-name"
+	KeyConnectorName = "connector_name"
+	KeyConnectorID   = "connector_id"
 )
