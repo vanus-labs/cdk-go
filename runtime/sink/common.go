@@ -40,13 +40,13 @@ func (w *sinkWorker) handHttpRequest(ctx context.Context, model connectorModel, 
 	}
 	validationErr := event.Validate()
 	if validationErr != nil {
-		log.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("failed to validate extracted event")
+		log.Info().Str(log.KeyConnectorID, connectorID).Err(validationErr).Msg("failed to validate extracted event")
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	result := sink.Arrived(ctx, event)
 	if result != connector.Success {
-		log.Info().Str(log.KeyConnectorID, connectorID).Err(err).Msg("event process failed")
+		log.Info().Str(log.KeyConnectorID, connectorID).Err(result.Error()).Msg("event process failed")
 		writer.WriteHeader(int(result.GetCode()))
 		_, _ = writer.Write([]byte(result.GetMsg()))
 		return
