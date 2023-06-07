@@ -74,7 +74,7 @@ func (w *httpSourceWorker) getHandler(connectorID string) http.Handler {
 }
 
 func (w *httpSourceWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	connectorID := strings.TrimSuffix(req.RequestURI, "/")
+	connectorID := strings.TrimSuffix(req.URL.Path, "/")
 	if w.basePathLen > 0 {
 		if len(connectorID) <= w.basePathLen {
 			writer.WriteHeader(http.StatusBadRequest)
