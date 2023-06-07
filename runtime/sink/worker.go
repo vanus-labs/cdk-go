@@ -143,7 +143,7 @@ func (w *sinkWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	connectorID := strings.TrimPrefix(strings.TrimSuffix(req.RequestURI, "/"), "/")
+	connectorID := strings.TrimPrefix(strings.TrimSuffix(req.URL.Path, "/"), "/")
 	sink := w.getSink(connectorID)
 	if sink == nil {
 		writer.WriteHeader(http.StatusBadRequest)
