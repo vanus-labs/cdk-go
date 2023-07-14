@@ -18,6 +18,7 @@ import (
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
+	Connector "github.com/vanus-labs/cdk-go/runtime/connector"
 	"github.com/vanus-labs/cdk-go/runtime/sink"
 	"github.com/vanus-labs/cdk-go/runtime/source"
 	"github.com/vanus-labs/cdk-go/util"
@@ -41,6 +42,20 @@ func RunSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceC
 	}
 	worker := source.NewSourceWorker(cfgCtor, sourceCtor, c)
 	runConnector(config.SourceConnector, worker)
+}
+
+func RunIntegration(cfgCtor common.ConnectorConfigConstructor, cCtor common.ConnectorConstructor) {
+	RunConnector(config.Integration, cfgCtor, cCtor)
+}
+
+func RunConnector(kind config.Kind, cfgCtor common.ConnectorConfigConstructor, cCtor common.ConnectorConstructor) {
+	c := common.WorkerConfig{}
+	err := util.ParseConfigFile(&c)
+	if err != nil {
+		panic("parse config failed:" + err.Error())
+	}
+	worker := Connector.NewConnectorWorker(cfgCtor, cCtor, c)
+	runConnector(kind, worker)
 }
 
 func RunHTTPSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.HTTPSourceConstructor) {

@@ -17,8 +17,10 @@ package config
 type Kind string
 
 const (
+	Connector       Kind = "connector"
 	SinkConnector   Kind = "sink"
 	SourceConnector Kind = "source"
+	Integration     Kind = "integration"
 )
 
 type SecretAccessor interface{}
@@ -36,6 +38,10 @@ type ConfigAccessor interface {
 type Config struct {
 	StoreConfig StoreConfig `json:"store_config" yaml:"store_config"`
 	LogConfig   LogConfig   `json:"log_config" yaml:"log_config"`
+}
+
+func (c *Config) ConnectorKind() Kind {
+	return Connector
 }
 
 func (c *Config) Validate() error {

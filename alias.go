@@ -26,6 +26,8 @@ type SourceConfigAccessor = config.SourceConfigAccessor
 type SinkConfigAccessor = config.SinkConfigAccessor
 type SecretAccessor = config.SecretAccessor
 
+type Connector = connector.Connector
+
 type SourceConfig = config.SourceConfig
 type Tuple = connector.Tuple
 type Source = connector.Source
@@ -38,6 +40,9 @@ type Sink = connector.Sink
 type KVStore = store.KVStore
 
 var (
+	RunConnector      = runtime.RunConnector
+	RunRunIntegration = runtime.RunIntegration
+
 	NewTuple      = connector.NewTuple
 	RunSource     = runtime.RunSource
 	RunHttpSource = runtime.RunHTTPSource

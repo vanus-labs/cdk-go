@@ -28,6 +28,9 @@ type HTTPSourceConstructor func() connector.HTTPSource
 type SinkConfigConstructor func() config.SinkConfigAccessor
 type SinkConstructor func() connector.Sink
 
+type ConnectorConfigConstructor func() config.ConfigAccessor
+type ConnectorConstructor func() connector.Connector
+
 type Worker interface {
 	Config() WorkerConfig
 	Start(ctx context.Context) error
