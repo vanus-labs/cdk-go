@@ -30,7 +30,7 @@ func RunSink(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstruct
 		panic("parse config failed:" + err.Error())
 	}
 	worker := sink.NewSinkWorker(cfgCtor, sinkCtor, c)
-	runConnector(config.SinkConnector, worker)
+	RunConnector(config.SinkConnector, worker)
 }
 
 func RunSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceConstructor) {
@@ -40,7 +40,7 @@ func RunSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceC
 		panic("parse config failed:" + err.Error())
 	}
 	worker := source.NewSourceWorker(cfgCtor, sourceCtor, c)
-	runConnector(config.SourceConnector, worker)
+	RunConnector(config.SourceConnector, worker)
 }
 
 func RunHTTPSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.HTTPSourceConstructor) {
@@ -50,10 +50,10 @@ func RunHTTPSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.HTT
 		panic("parse config failed:" + err.Error())
 	}
 	worker := source.NewHTTPSourceWorker(cfgCtor, sourceCtor, c)
-	runConnector(config.SourceConnector, worker)
+	RunConnector(config.SourceConnector, worker)
 }
 
-func runConnector(kind config.Kind, w common.Worker) {
+func RunConnector(kind config.Kind, w common.Worker) {
 	log.SetLogLevel(w.Config().LogConfig.GetLogLevel())
 	multi := w.Config().Multi
 	if !multi {
