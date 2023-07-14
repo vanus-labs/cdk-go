@@ -18,7 +18,7 @@ import (
 	"github.com/vanus-labs/cdk-go/config"
 	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
-	Connector "github.com/vanus-labs/cdk-go/runtime/connector"
+	"github.com/vanus-labs/cdk-go/runtime/connector"
 	"github.com/vanus-labs/cdk-go/runtime/sink"
 	"github.com/vanus-labs/cdk-go/runtime/source"
 	"github.com/vanus-labs/cdk-go/util"
@@ -50,7 +50,7 @@ func RunConnector(kind config.Kind, cfgCtor common.ConnectorConfigConstructor, c
 	if err != nil {
 		panic("parse config failed:" + err.Error())
 	}
-	worker := Connector.NewConnectorWorker(cfgCtor, cCtor, c)
+	worker := connector.NewConnectorWorker(cfgCtor, cCtor, c)
 	runConnector(kind, worker)
 }
 
