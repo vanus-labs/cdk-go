@@ -40,8 +40,7 @@ type Sink = connector.Sink
 type KVStore = store.KVStore
 
 var (
-	RunConnector      = runtime.RunConnector
-	RunRunIntegration = runtime.RunIntegration
+	RunConnector = runtime.RunConnector
 
 	NewTuple      = connector.NewTuple
 	RunSource     = runtime.RunSource

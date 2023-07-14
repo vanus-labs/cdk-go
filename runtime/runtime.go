@@ -44,10 +44,6 @@ func RunSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.SourceC
 	runConnector(config.SourceConnector, worker)
 }
 
-func RunIntegration(cfgCtor common.ConnectorConfigConstructor, cCtor common.ConnectorConstructor) {
-	RunConnector(config.Integration, cfgCtor, cCtor)
-}
-
 func RunConnector(kind config.Kind, cfgCtor common.ConnectorConfigConstructor, cCtor common.ConnectorConstructor) {
 	c := common.WorkerConfig{}
 	err := util.ParseConfigFile(&c)

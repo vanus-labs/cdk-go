@@ -20,7 +20,6 @@ const (
 	Connector       Kind = "connector"
 	SinkConnector   Kind = "sink"
 	SourceConnector Kind = "source"
-	Integration     Kind = "integration"
 )
 
 type SecretAccessor interface{}
