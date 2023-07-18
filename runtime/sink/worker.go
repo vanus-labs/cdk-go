@@ -36,14 +36,16 @@ type sinkWorker struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
 	shuttingDown bool
+	basePathLen  int
 }
 
 func NewSinkWorker(cfgCtor common.SinkConfigConstructor, sinkCtor common.SinkConstructor, config common.HTTPConfig) common.Worker {
 	return &sinkWorker{
-		cfgCtor:  cfgCtor,
-		sinkCtor: sinkCtor,
-		sinks:    map[string]connector.Sink{},
-		config:   config,
+		cfgCtor:     cfgCtor,
+		sinkCtor:    sinkCtor,
+		sinks:       map[string]connector.Sink{},
+		config:      config,
+		basePathLen: len(config.BasePath),
 	}
 }
 
@@ -143,7 +145,17 @@ func (w *sinkWorker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 		writer.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	connectorID := strings.TrimPrefix(strings.TrimSuffix(req.URL.Path, "/"), "/")
+	connectorID := req.URL.Path
+	if w.basePathLen > 0 {
+		if len(connectorID) <= w.basePathLen {
+			writer.WriteHeader(http.StatusBadRequest)
+			writer.Write([]byte("connectorID invalid"))
+			return
+		}
+		connectorID = connectorID[w.basePathLen:]
+	} else {
+		connectorID = strings.TrimPrefix(connectorID, "/")
+	}
 	sink := w.getSink(connectorID)
 	if sink == nil {
 		writer.WriteHeader(http.StatusBadRequest)
