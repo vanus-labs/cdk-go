@@ -22,7 +22,8 @@ type WorkerConfig struct {
 	// connector type
 	ConnectorType string `yaml:"connector_type" json:"connector_type"`
 	// log config
-	LogConfig config.LogConfig `json:"log_config" yaml:"log_config"`
+	LogConfig   config.LogConfig   `json:"log_config" yaml:"log_config"`
+	StoreConfig config.StoreConfig `json:"store_config" yaml:"store_config"`
 }
 
 type HTTPConfig struct {

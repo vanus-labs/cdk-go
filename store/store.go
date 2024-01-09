@@ -36,17 +36,17 @@ var kvStore KVStore
 func InitKvStore(cfg config.StoreConfig) (err error) {
 	switch cfg.Type {
 	case config.FileStore:
-		kvStore, err = NewFileStore(cfg.StoreFile)
+		kvStore, err = newFileStore(cfg.StoreFile)
 		if err != nil {
 			return errors.Wrap(err, "new file store error")
 		}
 	case config.EtcdStore:
-		kvStore, err = NewEtcdStore(cfg.Endpoints, cfg.KeyPrefix)
+		kvStore, err = newEtcdStore(cfg.Endpoints, cfg.KeyPrefix)
 		if err != nil {
 			return errors.Wrap(err, "new etcd store error")
 		}
 	default:
-		kvStore = NewMemoryStore()
+		kvStore = newMemoryStore()
 	}
 	return nil
 }

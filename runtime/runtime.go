@@ -20,6 +20,7 @@ import (
 	"github.com/vanus-labs/cdk-go/runtime/common"
 	"github.com/vanus-labs/cdk-go/runtime/sink"
 	"github.com/vanus-labs/cdk-go/runtime/source"
+	"github.com/vanus-labs/cdk-go/store"
 	"github.com/vanus-labs/cdk-go/util"
 )
 
@@ -55,6 +56,11 @@ func RunHTTPSource(cfgCtor common.SourceConfigConstructor, sourceCtor common.HTT
 
 func RunConnector(kind config.Kind, w common.Worker) {
 	log.SetLogLevel(w.Config().LogConfig.GetLogLevel())
+	err := store.InitKvStore(w.Config().StoreConfig)
+	if err != nil {
+		panic("init kv store error:" + err.Error())
+	}
+	defer store.GetKVStore().Close()
 	multi := w.Config().Multi
 	if !multi {
 		runStandaloneConnector(kind, w.Config().ConnectorType, w)

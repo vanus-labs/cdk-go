@@ -25,6 +25,7 @@ import (
 	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
 	"github.com/vanus-labs/cdk-go/runtime/util"
+	"github.com/vanus-labs/cdk-go/store"
 )
 
 type sinkWorker struct {
@@ -101,7 +102,9 @@ func (w *sinkWorker) RegisterConnector(connectorID string, config []byte) error 
 	cfg := w.cfgCtor()
 	sink := w.sinkCtor()
 	c := common.Connector{Config: cfg, Connector: sink}
-	err := c.InitConnector(log.WithLogger(context.Background(), log.NewConnectorLog(connectorID)), config)
+	ctx := log.WithLogger(context.Background(), log.NewConnectorLog(connectorID))
+	ctx = store.WithKVStore(ctx, store.NewConnectorStore(connectorID))
+	err := c.InitConnector(ctx, config)
 	if err != nil {
 		return err
 	}

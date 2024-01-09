@@ -21,6 +21,7 @@ import (
 	"github.com/vanus-labs/cdk-go/connector"
 	"github.com/vanus-labs/cdk-go/log"
 	"github.com/vanus-labs/cdk-go/runtime/common"
+	"github.com/vanus-labs/cdk-go/store"
 )
 
 type sourceWorker struct {
@@ -95,12 +96,14 @@ func (w *sourceWorker) RegisterConnector(connectorID string, config []byte) erro
 	cfg := w.cfgCtor()
 	source := w.sourceCtor()
 	ctor := common.Connector{Config: cfg, Connector: source}
-	err := ctor.InitConnector(log.WithLogger(context.Background(), log.NewConnectorLog(connectorID)), config)
+	ctx := log.WithLogger(context.Background(), log.NewConnectorLog(connectorID))
+	ctx = store.WithKVStore(ctx, store.NewConnectorStore(connectorID))
+	err := ctor.InitConnector(ctx, config)
 	if err != nil {
 		return err
 	}
 	sender := newSourceSender(cfg, source)
-	sender.Start(log.WithLogger(context.Background(), log.NewConnectorLog(connectorID)))
+	sender.Start(ctx)
 	log.Info().Str(log.KeyConnectorID, connectorID).Msg("connector start")
 	w.senders[connectorID] = sender
 	return nil

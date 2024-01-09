@@ -24,7 +24,7 @@ type memoryStore struct {
 	lock sync.RWMutex
 }
 
-func NewMemoryStore() KVStore {
+func newMemoryStore() KVStore {
 	return &memoryStore{
 		data: map[string][]byte{},
 	}
