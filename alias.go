@@ -46,6 +46,4 @@ var (
 
 	SuccessResult = connector.Success
 	NewResult     = connector.NewResult
-
-	GetKVStore = store.GetKVStore
 )

@@ -17,7 +17,6 @@ package store
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 
 	"github.com/pkg/errors"
@@ -28,7 +27,7 @@ type fileStore struct {
 	fileName string
 }
 
-func NewFileStore(fileName string) (KVStore, error) {
+func newFileStore(fileName string) (KVStore, error) {
 	f := &fileStore{
 		fileName: fileName,
 	}
@@ -40,7 +39,7 @@ func NewFileStore(fileName string) (KVStore, error) {
 
 func (s *fileStore) load() error {
 	data := make(map[string][]byte)
-	b, err := ioutil.ReadFile(s.fileName)
+	b, err := os.ReadFile(s.fileName)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return errors.Wrapf(err, "read file %s error", s.fileName)
@@ -59,7 +58,7 @@ func (s *fileStore) Save(_ context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err = ioutil.WriteFile(s.fileName, b, 0644); err != nil {
+	if err = os.WriteFile(s.fileName, b, 0644); err != nil {
 		return errors.Wrapf(err, "write file %s error", s.fileName)
 	}
 	return nil
